@@ -1,6 +1,13 @@
-import { Text, View } from "react-native";
+import { Text, View, TouchableOpacity, Alert } from "react-native";
+import axios from "axios";
 
 export default function Index() {
+  const testApi = async () => {
+      const response = await axios.get("http://ec2-54-235-233-32.compute-1.amazonaws.com/");
+      Alert.alert(response.data);
+  };
+
+
   return (
     <View
       style={{
@@ -9,7 +16,9 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <TouchableOpacity onPress={testApi}>
+          <Text>Test Node.js Endpoint</Text>
+      </TouchableOpacity>
     </View>
   );
 }
