@@ -1,9 +1,10 @@
 import { Text, View, TouchableOpacity, Alert } from "react-native";
+import { apiUrl } from "../config/config.js"
 import axios from "axios";
 
 export default function Index() {
   const testApi = async () => {
-      const response = await axios.get("http://ec2-54-235-233-32.compute-1.amazonaws.com/");
+      const response = await axios.get(apiUrl);
       Alert.alert(response.data);
   };
 
