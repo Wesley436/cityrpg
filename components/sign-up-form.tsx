@@ -14,6 +14,9 @@ import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
+import Alert from '@blazejkustra/react-native-alert';
+import api from "../config/api";
+import axios from "axios";
 import { useRouter } from "expo-router";
 
 const SignUpForm = () => {
@@ -25,6 +28,7 @@ const SignUpForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [registering, setRegistering] = useState(false);
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
@@ -34,8 +38,20 @@ const SignUpForm = () => {
     confirmPasswordInputRef.current?.focus();
   }
 
-  function register() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function register() {
+    setRegistering(true)
+
+    await api.post('/auth/register', {"email": email, "password": password, "confirm_password": confirmPassword})
+    .then(async function () {
+        Alert.alert("Account created successfully.", "", [{text: "OK", onPress: () => {router.navigate("/sign-in")}}])
+        setRegistering(false)
+    })
+    .catch(function (error) {
+      if (axios.isAxiosError(error)) {
+        Alert.alert(error.response?.data.error)
+      }
+      setRegistering(false)
+    })
   }
 
   return (
@@ -91,16 +107,15 @@ const SignUpForm = () => {
                 onChangeText={setConfirmPassword}
               />
               {
-                (confirmPassword)
-                &&
-                (password !== confirmPassword)
-                &&
+                (confirmPassword && password !== confirmPassword)
+                ?
                 <Text className="text-red-500">
                   The two passwords do not match.
                 </Text>
+                : null
               }
             </View>
-            <Button className="w-full" onPress={register} disabled={!email || !password || !confirmPassword || (password !== confirmPassword)}>
+            <Button className="w-full" onPress={register} disabled={!email || !password || !confirmPassword || (password !== confirmPassword) || registering}>
               <Text>Register</Text>
             </Button>
           </View>
