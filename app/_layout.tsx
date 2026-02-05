@@ -8,7 +8,9 @@ import "../css/global.css"
 export default function RootLayout() {
   return <ThemeProvider value={NAV_THEME['dark']}>
             <StatusBar/>
-            <Stack />
+            <Stack screenOptions={{
+              headerShown: false,
+            }}/>
           <PortalHost />
         </ThemeProvider>;
 }

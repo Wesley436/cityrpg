@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
+  // CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 // import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Pressable, type TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
-const SignInForm = ({navigation}: any) => {
+const SignUpForm = ({navigation}: any) => {
   const passwordInputRef = React.useRef<TextInput>(null);
 
   function onEmailSubmitEditing() {
@@ -29,10 +29,10 @@ const SignInForm = ({navigation}: any) => {
     <View className="gap-6">
       <Card className="border-border/0 sm:border-border shadow-none sm:shadow-sm sm:shadow-black/5">
         <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Welcome to City RPG!</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Please login / register to continue
-          </CardDescription>
+          <CardTitle className="text-center text-xl sm:text-left">Create your account</CardTitle>
+          {/* <CardDescription className="text-center sm:text-left">
+            Welcome! Please fill in the details to get started.
+          </CardDescription> */}
         </CardHeader>
         <CardContent className="gap-6">
           <View className="gap-6">
@@ -52,15 +52,6 @@ const SignInForm = ({navigation}: any) => {
             <View className="gap-1.5">
               <View className="flex-row items-center">
                 <Label htmlFor="password">Password</Label>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="web:h-fit ml-auto h-4 px-1 py-0 sm:h-4"
-                  onPress={() => {
-                    // TODO: Navigate to forgot password screen
-                  }}>
-                  <Text className="font-normal leading-4">Forgot your password?</Text>
-                </Button>
               </View>
               <Input
                 ref={passwordInputRef}
@@ -71,16 +62,16 @@ const SignInForm = ({navigation}: any) => {
               />
             </View>
             <Button className="w-full" onPress={onSubmit}>
-              <Text>Login</Text>
+              <Text>Register</Text>
             </Button>
           </View>
           <Text className="text-center text-sm">
-            Don&apos;t have an account?{' '}
+            Already have an account?{' '}
             <Pressable
               onPress={() => {
-                navigation.navigate("SignUpScreen");
+                navigation.navigate("SignInScreen");
               }}>
-              <Text className="text-sm underline underline-offset-4">Register</Text>
+              <Text className="text-sm underline underline-offset-4">Sign in</Text>
             </Pressable>
           </Text>
           {/* <View className="flex-row items-center">
@@ -95,4 +86,4 @@ const SignInForm = ({navigation}: any) => {
   );
 }
 
-export default SignInForm;
+export default SignUpForm;
