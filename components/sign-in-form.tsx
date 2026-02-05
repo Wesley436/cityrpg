@@ -12,17 +12,34 @@ import { Label } from '@/components/ui/label';
 // import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Pressable, type TextInput, View } from 'react-native';
+import { Alert, Pressable, type TextInput, View } from 'react-native';
+import { useState } from 'react';
+import api from "../config/api";
+import axios from "axios";
+import { useRouter } from "expo-router";
 
-const SignInForm = ({navigation}: any) => {
+const SignInForm = () => {
+  const router = useRouter()
+
   const passwordInputRef = React.useRef<TextInput>(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
   }
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function onSubmit() {
+    await api.post('/auth/login', {"email": email, "password": password})
+    .then(function () {
+        router.navigate("/main/map")
+    })
+    .catch(function (error) {
+      if (axios.isAxiosError(error)) {
+        Alert.alert(error.response?.data.error)
+      }
+    })
   }
 
   return (
@@ -47,6 +64,8 @@ const SignInForm = ({navigation}: any) => {
                 onSubmitEditing={onEmailSubmitEditing}
                 returnKeyType="next"
                 submitBehavior="submit"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
             <View className="gap-1.5">
@@ -68,9 +87,11 @@ const SignInForm = ({navigation}: any) => {
                 secureTextEntry
                 returnKeyType="send"
                 onSubmitEditing={onSubmit}
+                value={password}
+                onChangeText={setPassword}
               />
             </View>
-            <Button className="w-full" onPress={onSubmit}>
+            <Button className="w-full" onPress={onSubmit} disabled={!email || !password}>
               <Text>Login</Text>
             </Button>
           </View>
@@ -78,7 +99,7 @@ const SignInForm = ({navigation}: any) => {
             Don&apos;t have an account?{' '}
             <Pressable
               onPress={() => {
-                navigation.navigate("SignUpScreen");
+                router.navigate("/sign-up");
               }}>
               <Text className="text-sm underline underline-offset-4">Register</Text>
             </Pressable>

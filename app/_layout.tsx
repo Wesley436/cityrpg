@@ -6,11 +6,17 @@ import { NAV_THEME } from "@/lib/theme";
 import "../css/global.css"
 
 export default function RootLayout() {
-  return <ThemeProvider value={NAV_THEME['dark']}>
-            <StatusBar/>
-            <Stack screenOptions={{
-              headerShown: false,
-            }}/>
-          <PortalHost />
-        </ThemeProvider>;
+  return (
+    <ThemeProvider value={NAV_THEME['dark']}>
+      <StatusBar/>
+      <Stack>
+        <Stack.Screen
+        name="(home)"
+        options={{
+          headerShown: false,
+        }}/>
+      </Stack>
+    <PortalHost/>
+  </ThemeProvider>
+  );
 }
