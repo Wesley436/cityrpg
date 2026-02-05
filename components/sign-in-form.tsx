@@ -76,7 +76,7 @@ const SignInForm = () => {
           await AsyncStorage.removeItem('rememberMe');
         }
 
-        // router.navigate("/main/map")
+        router.navigate("/main/map")
         setLoggingIn(false)
     })
     .catch(function (error) {
