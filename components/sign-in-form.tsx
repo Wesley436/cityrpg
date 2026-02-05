@@ -17,6 +17,7 @@ import { useState } from 'react';
 import api from "../config/api";
 import axios from "axios";
 import { useRouter } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignInForm = () => {
   const router = useRouter()
@@ -30,10 +31,14 @@ const SignInForm = () => {
     passwordInputRef.current?.focus();
   }
 
-  async function onSubmit() {
+  async function login() {
     await api.post('/auth/login', {"email": email, "password": password})
-    .then(function () {
-        router.navigate("/main/map")
+    .then(async function (response) {
+        await AsyncStorage.setItem('uid', JSON.stringify(response.headers["uid"]));
+        await AsyncStorage.setItem('id_token', JSON.stringify(response.headers["id_token"]));
+        await AsyncStorage.setItem('refresh_token', JSON.stringify(response.headers["refresh_token"]));
+
+        // router.navigate("/main/map")
     })
     .catch(function (error) {
       if (axios.isAxiosError(error)) {
@@ -86,23 +91,31 @@ const SignInForm = () => {
                 id="password"
                 secureTextEntry
                 returnKeyType="send"
-                onSubmitEditing={onSubmit}
                 value={password}
                 onChangeText={setPassword}
               />
             </View>
-            <Button className="w-full" onPress={onSubmit} disabled={!email || !password}>
+            <Button className="w-full" onPress={login} disabled={!email || !password}>
               <Text>Login</Text>
+            </Button>
+            <Button className="w-full" onPress={async () => {
+                await api.get('/')
+                .then(async function (response) {
+                  console.log(response)
+                })
+            }}>
+              <Text>Test refresh token</Text>
             </Button>
           </View>
           <Text className="text-center text-sm">
             Don&apos;t have an account?{' '}
-            <Pressable
-              onPress={() => {
+            {/* <Pressable> */}
+              <Text className="text-sm underline underline-offset-4" onPress={() => {
                 router.navigate("/sign-up");
               }}>
-              <Text className="text-sm underline underline-offset-4">Register</Text>
-            </Pressable>
+                Register
+              </Text>
+            {/* </Pressable> */}
           </Text>
           {/* <View className="flex-row items-center">
             <Separator className="flex-1" />

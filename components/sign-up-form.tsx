@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 // import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
+import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useRouter } from "expo-router";
 
@@ -19,12 +20,21 @@ const SignUpForm = () => {
   const router = useRouter()
 
   const passwordInputRef = React.useRef<TextInput>(null);
+  const confirmPasswordInputRef = React.useRef<TextInput>(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
   }
 
-  function onSubmit() {
+  function onPasswordSubmitEditing() {
+    confirmPasswordInputRef.current?.focus();
+  }
+
+  function register() {
     // TODO: Submit form and navigate to protected screen if successful
   }
 
@@ -50,6 +60,8 @@ const SignUpForm = () => {
                 onSubmitEditing={onEmailSubmitEditing}
                 returnKeyType="next"
                 submitBehavior="submit"
+                value={email}
+                onChangeText={setEmail}
               />
             </View>
             <View className="gap-1.5">
@@ -61,21 +73,51 @@ const SignUpForm = () => {
                 id="password"
                 secureTextEntry
                 returnKeyType="send"
-                onSubmitEditing={onSubmit}
+                onSubmitEditing={onPasswordSubmitEditing}
+                value={password}
+                onChangeText={setPassword}
               />
             </View>
-            <Button className="w-full" onPress={onSubmit}>
+            <View className="gap-1.5">
+              <View className="flex-row items-center">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+              </View>
+              <Input
+                ref={confirmPasswordInputRef}
+                id="confirm-password"
+                secureTextEntry
+                returnKeyType="send"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              {
+                (confirmPassword)
+                &&
+                (password !== confirmPassword)
+                &&
+                <Text className="text-red-500">
+                  The two passwords do not match.
+                </Text>
+              }
+            </View>
+            <Button className="w-full" onPress={register} disabled={!email || !password || !confirmPassword || (password !== confirmPassword)}>
               <Text>Register</Text>
             </Button>
           </View>
           <Text className="text-center text-sm">
             Already have an account?{' '}
-            <Pressable
+            {/* <Pressable> */}
+              <Text className="text-sm underline underline-offset-4"
               onPress={() => {
-                router.navigate("/sign-in");
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.navigate("/sign-in")
+                }
               }}>
-              <Text className="text-sm underline underline-offset-4">Sign in</Text>
-            </Pressable>
+                Sign in
+              </Text>
+            {/* </Pressable> */}
           </Text>
           {/* <View className="flex-row items-center">
             <Separator className="flex-1" />
