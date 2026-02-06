@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 import Alert from '@blazejkustra/react-native-alert';
 import api from "../config/api";
 import axios from "axios";
@@ -43,7 +43,7 @@ const SignUpForm = () => {
 
     await api.post('/auth/register', {"email": email, "password": password, "confirm_password": confirmPassword})
     .then(async function () {
-        Alert.alert("Account created successfully.", "", [{text: "OK", onPress: () => {router.navigate("/sign-in")}}])
+        Alert.alert("Account created successfully.", "", [{text: "OK", onPress: () => {router.replace("/sign-in")}}])
         setRegistering(false)
     })
     .catch(function (error) {
@@ -127,7 +127,7 @@ const SignUpForm = () => {
                 if (router.canGoBack()) {
                   router.back();
                 } else {
-                  router.navigate("/sign-in")
+                  router.replace("/sign-in")
                 }
               }}>
                 Sign in

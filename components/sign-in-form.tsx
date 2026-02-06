@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 // import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
-import { Pressable, type TextInput, View } from 'react-native';
+import { type TextInput, View } from 'react-native';
 import Alert from '@blazejkustra/react-native-alert';
 import { useState, useEffect } from 'react';
 import api from "../config/api";
@@ -76,7 +76,7 @@ const SignInForm = () => {
           await AsyncStorage.removeItem('rememberMe');
         }
 
-        router.navigate("/main/map")
+        router.replace("/main/map")
         setLoggingIn(false)
     })
     .catch(function (error) {
@@ -121,7 +121,7 @@ const SignInForm = () => {
                   size="sm"
                   className="web:h-fit ml-auto h-4 px-1 py-0 sm:h-4"
                   onPress={() => {
-                    router.navigate("/forget-password");
+                    router.replace("/forget-password");
                   }}>
                   <Text className="font-normal leading-4">Forgot your password?</Text>
                 </Button>
@@ -162,7 +162,7 @@ const SignInForm = () => {
             Don&apos;t have an account?{' '}
             {/* <Pressable> */}
               <Text className="text-sm underline underline-offset-4" onPress={() => {
-                router.navigate("/sign-up");
+                router.replace("/sign-up");
               }}>
                 Register
               </Text>

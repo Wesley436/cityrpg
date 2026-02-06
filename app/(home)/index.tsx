@@ -4,7 +4,7 @@ import SignUpScreen from "./sign-up";
 
 const HomeStack = createNativeStackNavigator();
 
-export default function Index() {
+const Index = () => {
   return (
     <HomeStack.Navigator initialRouteName="SignInScreen">
         <HomeStack.Screen
@@ -24,3 +24,5 @@ export default function Index() {
   </HomeStack.Navigator>
   )
 }
+
+export default Index;

@@ -16,7 +16,7 @@ import Alert from '@blazejkustra/react-native-alert';
 import api from '@/config/api';
 import axios from 'axios';
 
-export function ForgotPasswordForm() {
+const ForgotPasswordForm = () => {
   const router = useRouter()
 
   const [email, setEmail] = useState("");
@@ -27,7 +27,7 @@ export function ForgotPasswordForm() {
 
     await api.post('/auth/forget-password', {"email": email})
     .then(async function () {
-        Alert.alert("Reset password email sent.", "", [{text: "OK", onPress: () => {router.navigate("/sign-in")}}])
+        Alert.alert("Reset password email sent.", "", [{text: "OK", onPress: () => {router.replace("/sign-in")}}])
         setSending(false)
     })
     .catch(function (error) {
@@ -75,7 +75,7 @@ export function ForgotPasswordForm() {
                 if (router.canGoBack()) {
                   router.back();
                 } else {
-                  router.navigate("/sign-in")
+                  router.replace("/sign-in")
                 }
               }}>
                 Sign in
@@ -87,3 +87,5 @@ export function ForgotPasswordForm() {
     </View>
   );
 }
+
+export default ForgotPasswordForm;

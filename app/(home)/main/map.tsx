@@ -32,7 +32,7 @@ const MapScreen = () => {
             await AsyncStorage.removeItem('id_token');
             await AsyncStorage.removeItem('refresh_token');
             
-            router.navigate("/sign-in")
+            router.replace("/sign-in")
         }}>
             {JSON.stringify(userData)}
         </Text>
