@@ -1,13 +1,24 @@
-import { Text } from '@/components/ui/text';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
-import { useRouter } from 'expo-router';
+import MapView from 'react-native-maps';
+import { StyleSheet, View } from 'react-native';
+import useLocation from '../../../hooks/useLocation';
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+});
 
 const MapScreen = () => {
-    const router = useRouter()
-
     const [userData, setUserData] = useState({});
+
+    const {latitude, longitude} = useLocation();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -27,15 +38,17 @@ const MapScreen = () => {
     }, []);
 
     return (
-        <Text className="text-gray-500" onPress={async () => {
-            await AsyncStorage.removeItem('uid');
-            await AsyncStorage.removeItem('id_token');
-            await AsyncStorage.removeItem('refresh_token');
-            
-            router.replace("/sign-in")
-        }}>
-            {JSON.stringify(userData)}
-        </Text>
+        <View style={styles.container}>
+            <MapView
+                region={{
+                    latitude: latitude,
+                    longitude: longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                }}
+                style={styles.map}
+            />
+        </View>
     );
 }
 
