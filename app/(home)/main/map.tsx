@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Circle, Marker, Region } from 'react-native-maps';
 import { StyleSheet, View } from 'react-native';
 import AnimatedMapRegion from 'react-native-maps/lib/AnimatedRegion';
 import * as Location from "expo-location";
@@ -21,6 +21,25 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 });
+
+const INTERACTION_RANGE = 200
+
+function deg2rad(deg: number) {
+    return deg * (Math.PI/180)
+}
+
+function distanceBetweenPoints(lat1: number, lon1: number, lat2: number, lon2: number) {
+    var earthRadius = 6371000;
+    var dLat = deg2rad(lat2-lat1);
+    var dLon = deg2rad(lon2-lon1); 
+    var a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2) 
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    var distance = earthRadius * c;
+    return distance;
+}
 
 const MapScreen = () => {
     const [userData, setUserData] = useState({})
@@ -185,6 +204,16 @@ const MapScreen = () => {
                 minZoomLevel={13}
                 onRegionChangeComplete={onRegionChangeComplete}
             >
+                <Circle
+                    center = {{
+                        latitude: currentLatitude,
+                        longitude: currentLongitude
+                    }}
+                    radius = { INTERACTION_RANGE }
+                    strokeWidth = { 2 }
+                    strokeColor = { '#00349c' }
+                    fillColor = { 'rgba(233, 240, 255, 0.18)' }
+                />
                 <Marker coordinate={{
                     latitude: currentLatitude,
                     longitude: currentLongitude
@@ -216,6 +245,13 @@ const MapScreen = () => {
                                 coordinate={{
                                     latitude: interactable.latitude,
                                     longitude: interactable.longitude
+                                }}
+                                onPress={() => {
+                                    if (distanceBetweenPoints(interactable.latitude, interactable.longitude, currentLatitude, currentLongitude) < INTERACTION_RANGE) {
+                                        Alert.alert(interactable.type, "In range")
+                                    } else {
+                                        Alert.alert(interactable.type, "You are too far from this location")
+                                    }
                                 }}>
                                     {icon}
                                 </Marker>
