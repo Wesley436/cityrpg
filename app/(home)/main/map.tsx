@@ -218,7 +218,7 @@ const MapScreen = () => {
                     latitude: currentLatitude,
                     longitude: currentLongitude
                 }}>
-                        <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
+                    <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
                 </Marker>
                 {
                     interactables.map((interactable) => {
@@ -234,7 +234,7 @@ const MapScreen = () => {
                                 icon = <MaterialCommunityIcons name="treasure-chest" size={32} color="#fff23c" />
                                 break;
                             case "equipment":
-                                icon = <FontAwesome6 name="shirt" size={32} color="#00d9ff" />
+                                icon = <MaterialCommunityIcons name="sword" size={32} color={"#00d9ff"} />
                                 break;
                             default:
                                 icon = <Feather name="box" size={32} color="black" />
