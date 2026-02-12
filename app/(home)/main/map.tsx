@@ -8,6 +8,9 @@ import * as Location from "expo-location";
 import Alert from '@blazejkustra/react-native-alert';
 import axios from "axios";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 const styles = StyleSheet.create({
   container: {
@@ -25,6 +28,8 @@ const MapScreen = () => {
     const [currentLongitude, setCurrentLongitude] = useState(0.0)
     const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | null>(null)
     const [refreshTimeout,  setRefreshTimeout] = useState<number | null>(null)
+
+    const [interactables, setInteractables] = useState([])
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -108,6 +113,17 @@ const MapScreen = () => {
                 region = currentRegion
             }
         }
+
+        var currLatitude = currentLatitude
+        var currLongitude = currentLongitude
+        if (!currLatitude || ! currLongitude) {
+            const position = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = position.coords
+            currLatitude = latitude
+            currLongitude = longitude
+            setCurrentLatitude(latitude)
+            setCurrentLongitude(longitude)
+        }
         
         if (region && !refreshTimeout) {
             console.log("Refreshing map");
@@ -125,12 +141,14 @@ const MapScreen = () => {
             const bottomLeftLongitude = long - longDelta/2
             const bottomRightLatitude = lat - latDelta/2
             const bottomRightLongitude = long + longDelta/2
-            console.log("Top left: " + topLeftLatitude + ", " + topLeftLongitude)
-            console.log("Top right: " + topRightLatitude + ", " + topRightLongitude)
-            console.log("Bottom left: " + bottomLeftLatitude + ", " + bottomLeftLongitude)
-            console.log("Bottom right: " + bottomRightLatitude + ", " + bottomRightLongitude)
+            // console.log("Top left: " + topLeftLatitude + ", " + topLeftLongitude)
+            // console.log("Top right: " + topRightLatitude + ", " + topRightLongitude)
+            // console.log("Bottom left: " + bottomLeftLatitude + ", " + bottomLeftLongitude)
+            // console.log("Bottom right: " + bottomRightLatitude + ", " + bottomRightLongitude)
 
             await api.post('/map/load-region', {
+                "current_latitude": currLatitude,
+                "current_longitude": currLongitude,
                 "top_left_latitude": topLeftLatitude,
                 "top_left_longitude": topLeftLongitude,
                 "top_right_latitude": topRightLatitude,
@@ -139,10 +157,12 @@ const MapScreen = () => {
                 "bottom_left_longitude": bottomLeftLongitude,
                 "bottom_right_latitude": bottomRightLatitude,
                 "bottom_right_longitude": bottomRightLongitude
-            }
-            )
-            .then(async function (response) {
-                
+            })
+            .then(function (response) {
+                // console.log(response?.data)
+                if (response?.data) {
+                    setInteractables(response?.data.interactables)
+                }
             })
             .catch(function (error) {
                 if (axios.isAxiosError(error)) {
@@ -165,10 +185,42 @@ const MapScreen = () => {
                 minZoomLevel={13}
                 onRegionChangeComplete={onRegionChangeComplete}
             >
-                <Marker coordinate={{latitude: currentLatitude,
-                    longitude: currentLongitude}}>
-                        <MaterialCommunityIcons name="human-child" size={32} color={"lightgreen"} />
+                <Marker coordinate={{
+                    latitude: currentLatitude,
+                    longitude: currentLongitude
+                }}>
+                        <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
                 </Marker>
+                {
+                    interactables.map((interactable) => {
+                        var icon
+                        switch (interactable.type) {
+                            case "event":
+                                icon = <MaterialIcons name="question-mark" size={32} color="#ffffff" />
+                                break;
+                            case "monster":
+                                icon = <MaterialCommunityIcons name="skull" size={32} color="#dd6969" />
+                                break;
+                            case "item":
+                                icon = <MaterialCommunityIcons name="treasure-chest" size={32} color="#fff23c" />
+                                break;
+                            case "equipment":
+                                icon = <FontAwesome6 name="shirt" size={32} color="#00d9ff" />
+                                break;
+                            default:
+                                icon = <Feather name="box" size={32} color="black" />
+                        }
+
+                        return <Marker
+                                key={interactable.id}
+                                coordinate={{
+                                    latitude: interactable.latitude,
+                                    longitude: interactable.longitude
+                                }}>
+                                    {icon}
+                                </Marker>
+                    })
+                }
             </MapView>
         </View>
     );
