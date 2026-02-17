@@ -48,6 +48,13 @@ const MapScreen = () => {
     const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | null>(null)
     const [refreshTimeout,  setRefreshTimeout] = useState<number | null>(null)
 
+    const [region, setRegion] = useState({
+        latitude: 0.0,
+        longitude: 0.0,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+    });
+
     const [interactables, setInteractables] = useState([])
 
     useEffect(() => {
@@ -68,7 +75,7 @@ const MapScreen = () => {
     }, []);
 
     useEffect(() => {
-        (async () => {
+        const getCurrentLocation = async () => {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== "granted") return;
 
@@ -78,7 +85,21 @@ const MapScreen = () => {
                 const { latitude, longitude } = position.coords
                 setCurrentLatitude(latitude)
                 setCurrentLongitude(longitude)
+                setRegion({
+                    latitude: latitude,
+                    longitude: longitude,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0922,
+                })
             }
+        };
+        getCurrentLocation();
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== "granted") return;
 
             const liveLocationUpdate = await Location.watchPositionAsync(
                 {
@@ -194,12 +215,8 @@ const MapScreen = () => {
     return (
         <View style={styles.container}>
             <MapView
-                region={{
-                    latitude: currentLatitude,
-                    longitude: currentLongitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }}
+                initialRegion={region}
+                region={region}
                 style={styles.map}
                 minZoomLevel={13}
                 onRegionChangeComplete={onRegionChangeComplete}
