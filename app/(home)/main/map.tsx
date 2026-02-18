@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
 import MapView, { Circle, Marker, Region } from 'react-native-maps';
-import { StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import AnimatedMapRegion from 'react-native-maps/lib/AnimatedRegion';
 import * as Location from "expo-location";
 import Alert from '@blazejkustra/react-native-alert';
@@ -10,7 +12,6 @@ import axios from "axios";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 const styles = StyleSheet.create({
   container: {
@@ -20,6 +21,33 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  modalView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  modalContent: {
+    minHeight: "20%",
+    backgroundColor: "#0000006b",
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center"
+  },
+  modalText: {
+    padding: 10,
+    margin: "auto",
+    fontSize: 24
+  },
+  modalButton: {
+    // minWidth: "25%",
+    width: "40%",
+    marginTop: "auto",
+    marginHorizontal: "5%"
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "bold"
+  }
 });
 
 const INTERACTION_RANGE = 200
@@ -45,10 +73,14 @@ const MapScreen = () => {
     const [userData, setUserData] = useState({})
     const [currentLatitude, setCurrentLatitude] = useState(0.0)
     const [currentLongitude, setCurrentLongitude] = useState(0.0)
-    const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | null>(null)
+    const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | undefined>()
     const [refreshTimeout,  setRefreshTimeout] = useState<number | null>(null)
+    const [showModal, setShowModal] = useState(false)
+    const [modalText, setModalText] = useState("")
+    const [modalButtonText, setModalButtonText] = useState("")
+    const [onModalAccept, setOnModalAccept] = useState(() => () => {})
 
-    const [region, setRegion] = useState({
+    const [initialRegion, setInitialRegion] = useState({
         latitude: 0.0,
         longitude: 0.0,
         latitudeDelta: 0.01,
@@ -85,7 +117,7 @@ const MapScreen = () => {
                 const { latitude, longitude } = position.coords
                 setCurrentLatitude(latitude)
                 setCurrentLongitude(longitude)
-                setRegion({
+                setInitialRegion({
                     latitude: latitude,
                     longitude: longitude,
                     latitudeDelta: 0.0922,
@@ -120,7 +152,7 @@ const MapScreen = () => {
 
     useEffect(() => {
         console.log("Starting interval to refreshing map");
-        refreshMap(null)
+        refreshMap()
 
         const interval = setInterval(() => {
             refreshMap(currentRegion)
@@ -132,15 +164,16 @@ const MapScreen = () => {
         };
     }, []);
 
-    function onRegionChangeComplete(region: Region | AnimatedMapRegion | null) {
+    function onRegionChangeComplete(region: Region | AnimatedMapRegion | undefined) {
         setCurrentRegion(region)
         refreshMap(region)
     }
 
-    async function refreshMap(region: Region | AnimatedMapRegion | null) {
+    async function refreshMap(region: Region | AnimatedMapRegion | undefined) {
         if (!region) {
             if (!currentRegion) {
                 const position = await Location.getCurrentPositionAsync({});
+                // console.log("getCurrentPositionAsync")
                 const { latitude, longitude } = position.coords
                 region = {
                     latitude: latitude,
@@ -212,70 +245,136 @@ const MapScreen = () => {
         }
     }
 
+    async function pickUpItem(interactable: { id: any; }) {
+        const uidValue = await AsyncStorage.getItem('uid')
+        if (uidValue) {
+            await api.post("/map/pick-up", {"interactable_id": interactable.id})
+            .then(async function (response) {
+                console.log(response.data)
+                refreshMap(currentRegion)
+            })
+            .catch(function (error) {
+                if (axios.isAxiosError(error)) {
+                    Alert.alert(error.response?.data.error)
+                }
+            })
+        }
+    }
+
     return (
-        <View style={styles.container}>
-            <MapView
-                initialRegion={region}
-                region={region}
-                style={styles.map}
-                minZoomLevel={13}
-                onRegionChangeComplete={onRegionChangeComplete}
-            >
-                <Circle
-                    center = {{
+        <>
+            <View style={styles.container}>
+                <MapView
+                    initialRegion={initialRegion}
+                    region={currentRegion}
+                    style={styles.map}
+                    minZoomLevel={13}
+                    onRegionChangeComplete={onRegionChangeComplete}
+                >
+                    <Circle
+                        center = {{
+                            latitude: currentLatitude,
+                            longitude: currentLongitude
+                        }}
+                        radius = { INTERACTION_RANGE }
+                        strokeWidth = { 2 }
+                        strokeColor = { '#00349c' }
+                        fillColor = { 'rgba(233, 240, 255, 0.18)' }
+                    />
+                    <Marker coordinate={{
                         latitude: currentLatitude,
                         longitude: currentLongitude
-                    }}
-                    radius = { INTERACTION_RANGE }
-                    strokeWidth = { 2 }
-                    strokeColor = { '#00349c' }
-                    fillColor = { 'rgba(233, 240, 255, 0.18)' }
-                />
-                <Marker coordinate={{
-                    latitude: currentLatitude,
-                    longitude: currentLongitude
-                }}>
-                    <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
-                </Marker>
-                {
-                    interactables.map((interactable) => {
-                        var icon
-                        switch (interactable.type) {
-                            case "event":
-                                icon = <MaterialIcons name="question-mark" size={32} color="#ffffff" />
-                                break;
-                            case "monster":
-                                icon = <MaterialCommunityIcons name="skull" size={32} color="#dd6969" />
-                                break;
-                            case "item":
-                                icon = <MaterialCommunityIcons name="treasure-chest" size={32} color="#fff23c" />
-                                break;
-                            case "equipment":
-                                icon = <MaterialCommunityIcons name="sword" size={32} color={"#00d9ff"} />
-                                break;
-                            default:
-                                icon = <Feather name="box" size={32} color="black" />
-                        }
+                    }}>
+                        <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
+                    </Marker>
+                    {
+                        interactables.map((interactable) => {
+                            var icon
+                            switch (interactable.type) {
+                                case "event":
+                                    icon = <MaterialIcons name="question-mark" size={32} color="#ffffff" />
+                                    break;
+                                case "monster":
+                                    icon = <MaterialCommunityIcons name="skull" size={32} color="#dd6969" />
+                                    break;
+                                case "item":
+                                    icon = <MaterialCommunityIcons name="treasure-chest" size={32} color="#fff23c" />
+                                    break;
+                                case "equipment":
+                                    icon = <MaterialCommunityIcons name="sword" size={32} color={"#00d9ff"} />
+                                    break;
+                                default:
+                                    icon = <Feather name="box" size={32} color="black" />
+                            }
 
-                        return <Marker
-                                key={interactable.id}
-                                coordinate={{
-                                    latitude: interactable.latitude,
-                                    longitude: interactable.longitude
-                                }}
-                                onPress={() => {
-                                    if (distanceBetweenPoints(interactable.latitude, interactable.longitude, currentLatitude, currentLongitude) < INTERACTION_RANGE) {
-                                        Alert.alert(interactable.type, "In range")
-                                    } else {
-                                        Alert.alert(interactable.type, "You are too far from this location")
-                                    }
+                            return <Marker
+                                    key={interactable.id}
+                                    coordinate={{
+                                        latitude: interactable.latitude,
+                                        longitude: interactable.longitude
+                                    }}
+                                    onPress={() => {
+                                        if (distanceBetweenPoints(interactable.latitude, interactable.longitude, currentLatitude, currentLongitude) < INTERACTION_RANGE) {
+                                            var modalText = "TBD"
+                                            var modalButtonText = "TBD"
+                                            switch (interactable.type) {
+                                                case "event":
+                                                    break;
+                                                case "monster":
+                                                    break;
+                                                case "item":
+                                                    modalText = interactable.title
+                                                    modalButtonText = "Pick up"
+                                                    setOnModalAccept(() => () => pickUpItem(interactable))
+                                                    break;
+                                                case "equipment":
+                                                    modalText = interactable.title
+                                                    modalButtonText = "Pick up"
+                                                    setOnModalAccept(() => () => pickUpItem(interactable))
+                                                    break;
+                                                default:
+                                                    modalText = "Invalid icon"
+                                            }
+                                            
+                                            setModalText(modalText)
+                                            setModalButtonText(modalButtonText)
+                                            setShowModal(true)
+                                        } else {
+                                            setModalText(`${interactable.title ? interactable.title + " " : ""}(Too far)`)
+                                            setModalButtonText("OK")
+                                            setShowModal(true)
+                                        }
+                                    }}>
+                                        {icon}
+                                    </Marker>
+                        })
+                    }
+                </MapView>
+            </View>
+            {
+                showModal
+                &&
+                <Modal animationType='fade' transparent={true}>
+                    <View style={styles.modalView}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalText}>{modalText}</Text>
+                            <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
+                                <Button style={styles.modalButton} onPress={() => {
+                                    onModalAccept();
+                                    setShowModal(false)
+                                    setOnModalAccept(() => () => {})
                                 }}>
-                                    {icon}
-                                </Marker>
-                    })
-                }
-            </MapView>
-        </View>
+                                    <Text style={styles.modalButtonText}>{modalButtonText}</Text>
+                                </Button>
+                                <Button style={styles.modalButton} onPress={() => {setShowModal(false)}}>
+                                    <Text style={styles.modalButtonText}>Cancel</Text>
+                                </Button>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+            }
+        </>
     );
 }
 
