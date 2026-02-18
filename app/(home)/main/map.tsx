@@ -70,7 +70,6 @@ function distanceBetweenPoints(lat1: number, lon1: number, lat2: number, lon2: n
 }
 
 const MapScreen = () => {
-    const [userData, setUserData] = useState({})
     const [currentLatitude, setCurrentLatitude] = useState(0.0)
     const [currentLongitude, setCurrentLongitude] = useState(0.0)
     const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | undefined>()
@@ -88,23 +87,6 @@ const MapScreen = () => {
     });
 
     const [interactables, setInteractables] = useState([])
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const uidValue = await AsyncStorage.getItem('uid')
-                if (uidValue) {
-                    await api.get(`/user/${JSON.parse(uidValue)}`)
-                    .then(async (response) => {
-                        setUserData(response?.data || {})
-                    })
-                }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
-            }
-        };
-        fetchUserData();
-    }, []);
 
     useEffect(() => {
         const getCurrentLocation = async () => {
@@ -151,7 +133,7 @@ const MapScreen = () => {
     }, []);
 
     useEffect(() => {
-        console.log("Starting interval to refreshing map");
+        console.log("Starting interval to refresh map");
         refreshMap()
 
         const interval = setInterval(() => {
@@ -159,7 +141,7 @@ const MapScreen = () => {
         }, 30000);
 
         return () => {
-            console.log("Clearing interval to refreshing map");
+            console.log("Clearing interval to refresh map");
             clearInterval(interval);
         };
     }, []);
