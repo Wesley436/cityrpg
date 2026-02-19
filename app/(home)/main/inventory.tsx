@@ -1,7 +1,7 @@
-import { useState, useEffect, JSXElementConstructor, ReactElement, ReactNode, ReactPortal } from 'react';
+import { useState, useEffect, JSX } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import Alert from '@blazejkustra/react-native-alert';
 import axios from "axios";
@@ -10,6 +10,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { Button } from '@/components/ui/button';
 
 const styles = StyleSheet.create({
   container: {
@@ -36,6 +37,23 @@ const styles = StyleSheet.create({
   tab_button_text: {
     fontSize: 16,
   },
+  equipment_grid: {
+    // flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  equipment_box: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 3,
+    padding: 5,
+    // borderColor: "transparent",
+    width: "20%",
+    alignItems: "center",
+    justifyContent: "center",
+    aspectRatio: 1,
+    backgroundColor: "#ffffff1c"
+  },
   item_grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -49,6 +67,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     aspectRatio: 1,
     backgroundColor: "#ffffff1c"
+  },
+  modalView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  modalContent: {
+    minHeight: "20%",
+    backgroundColor: "#0000006b",
+    borderRadius: 10,
+    padding: 10,
+    alignItems: "center"
+  },
+  modalText: {
+    padding: 10,
+    margin: "auto",
+    fontSize: 24
+  },
+  modalButton: {
+    // minWidth: "25%",
+    width: "40%",
+    marginTop: "auto",
+    marginHorizontal: "5%"
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "bold"
   }
 });
 
@@ -60,6 +105,19 @@ const InventoryScreen = () => {
     const [modalButtonText, setModalButtonText] = useState("")
     const [onModalAccept, setOnModalAccept] = useState(() => () => {})
     const [inventory, setInventory] = useState<any>([])
+    const [usingItem, setUsingItem] = useState(false)
+
+    const updateInventory = (inventory: string[]) => {
+        const items: any[] = []
+        inventory?.forEach((itemString: string) => {
+            const item = JSON.parse(itemString)
+            items.push(item)
+        });
+
+
+
+        setInventory(items)
+    }
 
     const fetchUserData = async () => {
         try {
@@ -69,17 +127,9 @@ const InventoryScreen = () => {
                 .then(async (response) => {
                     const user = response?.data
                     setUserData(user || {})
-                    console.log(user)
+                    // console.log(user)
                     if (user) {
-                        const items: any[] = []
-                        user.inventory?.forEach((itemString: string) => {
-                            const item = JSON.parse(itemString)
-                            items.push(item)
-                        });
-
-                        
-
-                        setInventory(items)
+                        updateInventory(user.inventory)
                     }
                 })
             }
@@ -105,23 +155,119 @@ const InventoryScreen = () => {
         };
     }, []);
 
-    const ItemBox = ({item}) => {
-        var icon
-        switch (item.title) {
-            case "Healing Potion": icon = <MaterialCommunityIcons name="bottle-tonic-plus" size={48} color="lightgreen" />; break
-            case "Strength Potion": icon = <MaterialCommunityIcons name="bottle-tonic-plus" size={48} color="red" />; break
-            case "Speed Potion": icon = <MaterialCommunityIcons name="bottle-tonic-plus" size={48} color="yellow" />; break
-            case "Defense Potion": icon = <MaterialCommunityIcons name="bottle-tonic-plus" size={48} color="#3da6ec" />; break
-            case "Helmet": icon = <FontAwesome5 name="hard-hat" size={48} color="silver" />; break
-            case "Chestplate": icon = <FontAwesome6 name="shirt" size={48} color="silver" />; break
-            case "Leggings": icon = <MaterialCommunityIcons name="bottle-tonic-plus" size={48} color="red" />; break
-            case "Boots": icon = <MaterialCommunityIcons name="shoe-formal" size={48} color="silver" />; break
-            case "Shield": icon = <MaterialCommunityIcons name="shield" size={48} color="lightblue" />; break
-            case "Axe": icon = <MaterialCommunityIcons name="axe-battle" size={48} color="silver" />; break
-            case "Single Sword": icon = <MaterialCommunityIcons name="sword" size={48} color="silver" />; break
+    const getItemIconFromTitle = (title: string, itemProps: JSX.IntrinsicAttributes) => {
+        switch (title) {
+            case "Healing Potion": return <MaterialCommunityIcons name="bottle-tonic-plus" color="lightgreen" {...itemProps}/>
+            case "Strength Potion": return <MaterialCommunityIcons name="bottle-tonic-plus" color="red" {...itemProps}/>
+            case "Speed Potion": return <MaterialCommunityIcons name="bottle-tonic-plus" color="yellow" {...itemProps}/>
+            case "Defense Potion": return <MaterialCommunityIcons name="bottle-tonic-plus" color="#3da6ec" {...itemProps}/>
+            case "Helmet": return <FontAwesome5 name="hard-hat" color="silver" {...itemProps}/>
+            case "Chestplate": return <FontAwesome6 name="shirt" color="silver" {...itemProps}/>
+            case "Boots": return <MaterialCommunityIcons name="shoe-formal" color="silver" {...itemProps}/>
+            case "Shield": return <MaterialCommunityIcons name="shield" color="lightblue" {...itemProps}/>
+            case "Axe": return <MaterialCommunityIcons name="axe-battle" color="silver" {...itemProps}/>
+            case "Single Sword": return <MaterialCommunityIcons name="sword" color="silver" {...itemProps}/>
             default:
-                icon = <MaterialIcons name="question-mark" size={48} color="#ffffff" />
+                return <MaterialIcons name="question-mark" color="#ffffff" {...itemProps}/>
         }
+    }
+
+    const getEquippedItemIconFromSlot = (slot: string) => {
+        const lowercaseSlot = slot.toLowerCase()
+
+        var onPress = () => {
+            setModalText(slot)
+            setModalButtonText("Unequip")
+
+            setOnModalAccept(() => async () => {
+                setShowModal(false)
+                setUsingItem(true)
+                await api.post("/user/use-item", {"item_id": lowercaseSlot})
+                .then(async function (response) {
+                    console.log(response.data)
+
+                    const user = response?.data
+                    setUserData(user || {})
+                    updateInventory(response.data.inventory)
+                })
+                .catch(function (error) {
+                    if (axios.isAxiosError(error)) {
+                        Alert.alert(error.response?.data.error)
+                    }
+                })
+                .finally(() => {
+                    setUsingItem(false)
+                })
+            })
+            setShowModal(true)
+        }
+
+        const equippedItem = userData[lowercaseSlot]
+        
+        var itemProps = {
+            size: 48,
+            disabled: usingItem,
+            onPress: () => {},
+            style: {}
+        }
+
+        if (equippedItem) {
+            itemProps.onPress = onPress
+            itemProps.style = {"opacity": equippedItem ? 1 : 0.2}
+            return getItemIconFromTitle(equippedItem, itemProps)
+        } else {
+            itemProps.style = {"opacity": 0.2}
+            switch (lowercaseSlot) {
+                case "helmet": return <FontAwesome5 name="hard-hat" color="silver" {...itemProps}/>
+                case "chestplate": return <FontAwesome6 name="shirt" color="silver" {...itemProps}/>
+                case "boots": return <MaterialCommunityIcons name="shoe-formal" color="silver" {...itemProps}/>
+                case "shield": return <MaterialCommunityIcons name="shield" color="lightblue" {...itemProps}/>
+                case "weapon": return <MaterialCommunityIcons name="sword" color="silver" {...itemProps}/>
+                default:
+                    return <MaterialIcons name="question-mark" size={48} color="#ffffff" />
+            }
+        }
+    }
+
+    const ItemBox = ({item}) => {
+        const onPress = () => {
+            setModalText(item.title)
+            switch (item.type) {
+                case "item": setModalButtonText("Use"); break
+                case "equipment": setModalButtonText("Equip"); break
+                default:
+                    setModalButtonText("OK")
+            }
+            setOnModalAccept(() => async () => {
+                setShowModal(false)
+                setUsingItem(true)
+                await api.post("/user/use-item", {"item_id": item.id})
+                .then(async function (response) {
+                    console.log(response.data)
+                    
+                    const user = response?.data
+                    setUserData(user || {})
+                    updateInventory(response.data.inventory)
+                })
+                .catch(function (error) {
+                    if (axios.isAxiosError(error)) {
+                        Alert.alert(error.response?.data.error)
+                    }
+                })
+                .finally(() => {
+                    setUsingItem(false)
+                })
+            })
+            setShowModal(true)
+        }
+
+        const itemProps = {
+            size: 48,
+            onPress: onPress,
+            disabled: usingItem
+        }
+        var icon = getItemIconFromTitle(item.title, itemProps)
+
         return (
             <View key={item.id} style={styles.item_box}>
                 {icon}
@@ -130,45 +276,88 @@ const InventoryScreen = () => {
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.equipment_section}>
-            
-            </View>
-            <View style={styles.inventory_section}>
-                <Tabs value={tabValue} onValueChange={setTabValue} style={styles.tabs}>
-                    <TabsList style={styles.tab_list}>
-                        <TabsTrigger value="all" style={styles.tab_button}>
-                            <Text style={styles.tab_button_text}>All</Text>
-                        </TabsTrigger>
-                        <TabsTrigger value="equipment" style={styles.tab_button}>
-                            <Text style={styles.tab_button_text}>Equipment</Text>
-                        </TabsTrigger>
-                        <TabsTrigger value="items" style={styles.tab_button}>
-                            <Text style={styles.tab_button_text}>Items</Text>
-                        </TabsTrigger>
-                        <TabsTrigger value="other" style={styles.tab_button}>
-                            <Text style={styles.tab_button_text}>Other</Text>
-                        </TabsTrigger>
-                    </TabsList>
-            
-                    <TabsContent value="all" style={styles.item_grid}>
-                        <FlatList data={inventory} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
-                    </TabsContent>
-            
-                    <TabsContent value="equipment" style={styles.item_grid}>
-                        <FlatList data={inventory.filter(item => item.type == "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
-                    </TabsContent>
+        <>
+            <View style={styles.container}>
+                <View style={styles.equipment_section}>
+                    <Text style={{padding: 10}}>Equipped Items</Text>
+                    <View style={styles.equipment_grid}>
+                        <View style={styles.equipment_box}>
+                            {getEquippedItemIconFromSlot("Helmet")}
+                        </View>
+                        <View style={styles.equipment_box}>
+                            {getEquippedItemIconFromSlot("Chestplate")}
+                        </View>
+                        <View style={styles.equipment_box}>
+                            {getEquippedItemIconFromSlot("Boots")}
+                        </View>
+                        <View style={styles.equipment_box}>
+                            {getEquippedItemIconFromSlot("Weapon")}
+                        </View>
+                        <View style={styles.equipment_box}>
+                            {getEquippedItemIconFromSlot("Shield")}
+                        </View>
+                    </View>
+                </View>
 
-                    <TabsContent value="items" style={styles.item_grid}>
-                        <FlatList data={inventory.filter(item => item.type == "item")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
-                    </TabsContent>
+                <View style={styles.inventory_section}>
+                    <Tabs value={tabValue} onValueChange={setTabValue} style={styles.tabs}>
+                        <TabsList style={styles.tab_list}>
+                            <TabsTrigger value="all" style={styles.tab_button}>
+                                <Text style={styles.tab_button_text}>All</Text>
+                            </TabsTrigger>
+                            <TabsTrigger value="equipment" style={styles.tab_button}>
+                                <Text style={styles.tab_button_text}>Equipment</Text>
+                            </TabsTrigger>
+                            <TabsTrigger value="items" style={styles.tab_button}>
+                                <Text style={styles.tab_button_text}>Items</Text>
+                            </TabsTrigger>
+                            <TabsTrigger value="other" style={styles.tab_button}>
+                                <Text style={styles.tab_button_text}>Other</Text>
+                            </TabsTrigger>
+                        </TabsList>
+                
+                        <TabsContent value="all" style={styles.item_grid}>
+                            <FlatList data={inventory} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                        </TabsContent>
+                
+                        <TabsContent value="equipment" style={styles.item_grid}>
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                        </TabsContent>
 
-                    <TabsContent value="other" style={styles.item_grid}>
-                        <FlatList data={inventory.filter(item => item.type != "item" && item.type != "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
-                    </TabsContent>
-                </Tabs>
+                        <TabsContent value="items" style={styles.item_grid}>
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "item")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                        </TabsContent>
+
+                        <TabsContent value="other" style={styles.item_grid}>
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type != "item" && item.type != "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                        </TabsContent>
+                    </Tabs>
+                </View>
             </View>
-        </View>
+            {
+                showModal
+                &&
+                <Modal animationType='fade' transparent={true}>
+                    <View style={styles.modalView}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalText}>{modalText}</Text>
+                            <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
+                                <Button style={styles.modalButton} onPress={() => {
+                                    onModalAccept();
+                                    setShowModal(false)
+                                    setOnModalAccept(() => () => {})
+                                }}>
+                                    <Text style={styles.modalButtonText}>{modalButtonText}</Text>
+                                </Button>
+                                <Button style={styles.modalButton} onPress={() => {setShowModal(false)}}>
+                                    <Text style={styles.modalButtonText}>Cancel</Text>
+                                </Button>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
+            }
+        </>
     );
 }
 

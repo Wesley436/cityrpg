@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   }
 });
 
-const INTERACTION_RANGE = 200
+const INTERACTION_RANGE = 300
 
 function deg2rad(deg: number) {
     return deg * (Math.PI/180)
@@ -134,7 +134,7 @@ const MapScreen = () => {
 
     useEffect(() => {
         console.log("Starting interval to refresh map");
-        refreshMap()
+        refreshMap(undefined)
 
         const interval = setInterval(() => {
             refreshMap(currentRegion)
@@ -232,7 +232,7 @@ const MapScreen = () => {
         if (uidValue) {
             await api.post("/map/pick-up", {"interactable_id": interactable.id})
             .then(async function (response) {
-                console.log(response.data)
+                // console.log(response.data)
                 refreshMap(currentRegion)
             })
             .catch(function (error) {
@@ -270,7 +270,7 @@ const MapScreen = () => {
                         <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
                     </Marker>
                     {
-                        interactables.map((interactable) => {
+                        interactables.map((interactable: {id: string, latitude: number, longitude: number, type: string, title: string}) => {
                             var icon
                             switch (interactable.type) {
                                 case "event":
