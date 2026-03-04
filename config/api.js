@@ -59,7 +59,7 @@ api.interceptors.response.use(
             await AsyncStorage.removeItem('id_token');
             await AsyncStorage.removeItem('refresh_token');
             
-            router.replace("/sign-up")
+            router.replace("/sign-in")
             Alert.alert("Your session has expired, please login again.")
             return;
         }

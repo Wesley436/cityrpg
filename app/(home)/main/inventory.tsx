@@ -1,4 +1,4 @@
-import { useState, useEffect, JSX } from 'react';
+import { useState, useEffect, JSX, SetStateAction } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
 import { FlatList, Modal, StyleSheet, View } from 'react-native';
@@ -11,6 +11,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { Button } from '@/components/ui/button';
+import useUserData from '@/hooks/useUserData';
 
 const styles = StyleSheet.create({
   container: {
@@ -66,7 +67,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     aspectRatio: 1,
-    backgroundColor: "#ffffff1c"
   },
   modalView: {
     flex: 1,
@@ -85,6 +85,11 @@ const styles = StyleSheet.create({
     margin: "auto",
     fontSize: 24
   },
+  modalDescription: {
+    padding: 10,
+    margin: "auto",
+    fontSize: 16
+  },
   modalButton: {
     // minWidth: "25%",
     width: "40%",
@@ -99,47 +104,14 @@ const styles = StyleSheet.create({
 
 const InventoryScreen = () => {
     const [tabValue, setTabValue] = useState("all")
-    const [userData, setUserData] = useState({})
     const [showModal, setShowModal] = useState(false)
     const [modalText, setModalText] = useState("")
+    const [modalDescription, setModalDescription] = useState("")
     const [modalButtonText, setModalButtonText] = useState("")
     const [onModalAccept, setOnModalAccept] = useState(() => () => {})
-    const [inventory, setInventory] = useState<any>([])
     const [usingItem, setUsingItem] = useState(false)
-
-    const updateInventory = (inventory: string[]) => {
-        const items: any[] = []
-        inventory?.forEach((itemString: string) => {
-            const item = JSON.parse(itemString)
-            items.push(item)
-        });
-
-
-
-        setInventory(items)
-    }
-
-    const fetchUserData = async () => {
-        try {
-            const uidValue = await AsyncStorage.getItem('uid')
-            if (uidValue) {
-                await api.get(`/user/${JSON.parse(uidValue)}`)
-                .then(async (response) => {
-                    const user = response?.data
-                    setUserData(user || {})
-                    // console.log(user)
-                    if (user) {
-                        updateInventory(user.inventory)
-                    }
-                })
-            }
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                console.error('Error fetching user data:', error);
-                Alert.alert(error.response?.data.error)
-            }
-        }
-    };
+ 
+    const { userData, setUserData, inventory, fetchUserData, updateInventory } = useUserData()
 
     useEffect(() => {
         console.log("Starting interval to refresh inventory");
@@ -154,6 +126,24 @@ const InventoryScreen = () => {
             clearInterval(interval);
         };
     }, []);
+
+    const customTitleOrder = ["Helmet", "Chestplate", "Boots", "Single Sword", "Axe", "Shield", "Healing Potion", "Strength Potion", "Speed Potion", "Defense Potion"];
+    const customRarityOrder = ["Epic", "Rare", "Uncommon", "Common"];
+    const getInventoryList = () => {
+        var temp = inventory
+        temp.sort((a, b) => {
+            const titleOrder = customTitleOrder.indexOf(a.title) - customTitleOrder.indexOf(b.title)
+            const rarityOrder = customRarityOrder.indexOf(a.rarity) - customRarityOrder.indexOf(b.rarity)
+            if (titleOrder != 0) {
+                return titleOrder
+            } else if (rarityOrder != 0) {
+                return rarityOrder
+            } else {
+                return 0
+            }
+        });
+        return temp
+    }
 
     const getItemIconFromTitle = (title: string, itemProps: JSX.IntrinsicAttributes) => {
         switch (title) {
@@ -172,11 +162,27 @@ const InventoryScreen = () => {
         }
     }
 
+    const setModalTextForItem = (item: { title: string; rarity: string; description:string; }) => {
+        var text = item.title
+        if (item.rarity) {
+            text += ` (${item.rarity})`
+        }
+        setModalText(text)
+
+        if (item.description) {
+            setModalDescription(item.description)
+        } else {
+            setModalDescription("")
+        }
+    }
+
     const getEquippedItemIconFromSlot = (slot: string) => {
         const lowercaseSlot = slot.toLowerCase()
 
         var onPress = () => {
-            setModalText(slot)
+            const item = JSON.parse(userData[lowercaseSlot])
+            setModalTextForItem(item)
+
             setModalButtonText("Unequip")
 
             setOnModalAccept(() => async () => {
@@ -202,7 +208,7 @@ const InventoryScreen = () => {
             setShowModal(true)
         }
 
-        const equippedItem = userData[lowercaseSlot]
+        const equippedItemString = userData[lowercaseSlot]
         
         var itemProps = {
             size: 48,
@@ -211,10 +217,12 @@ const InventoryScreen = () => {
             style: {}
         }
 
-        if (equippedItem) {
+        if (equippedItemString) {
+            const equippedItem = JSON.parse(equippedItemString)
             itemProps.onPress = onPress
+
             itemProps.style = {"opacity": equippedItem ? 1 : 0.2}
-            return getItemIconFromTitle(equippedItem, itemProps)
+            return getItemIconFromTitle(equippedItem.title, itemProps)
         } else {
             itemProps.style = {"opacity": 0.2}
             switch (lowercaseSlot) {
@@ -231,7 +239,8 @@ const InventoryScreen = () => {
 
     const ItemBox = ({item}) => {
         const onPress = () => {
-            setModalText(item.title)
+            setModalTextForItem(item)
+
             switch (item.type) {
                 case "item": setModalButtonText("Use"); break
                 case "equipment": setModalButtonText("Equip"); break
@@ -268,8 +277,19 @@ const InventoryScreen = () => {
         }
         var icon = getItemIconFromTitle(item.title, itemProps)
 
+        var backgroundColor = "#ffffff1c"
+
+        if (item.rarity) {
+            switch (item.rarity) {
+                case "Common": backgroundColor = "#ffffff1c"; break;
+                case "Uncommon": backgroundColor = "#68ff632a"; break;
+                case "Rare": backgroundColor = "#00e1ff2c"; break;
+                case "Epic": backgroundColor = "#f700ff21"; break;
+            }
+        }
+
         return (
-            <View key={item.id} style={styles.item_box}>
+            <View key={item.id} style={{...styles.item_box, backgroundColor: backgroundColor}}>
                 {icon}
             </View>
         )
@@ -317,7 +337,7 @@ const InventoryScreen = () => {
                         </TabsList>
                 
                         <TabsContent value="all" style={styles.item_grid}>
-                            <FlatList data={inventory} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                            <FlatList data={getInventoryList()} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
                         </TabsContent>
                 
                         <TabsContent value="equipment" style={styles.item_grid}>
@@ -341,6 +361,11 @@ const InventoryScreen = () => {
                     <View style={styles.modalView}>
                         <View style={styles.modalContent}>
                             <Text style={styles.modalText}>{modalText}</Text>
+                            {
+                                modalDescription
+                                &&
+                                <Text style={styles.modalDescription}>{modalDescription}</Text>
+                            }
                             <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
                                 <Button style={styles.modalButton} onPress={() => {
                                     onModalAccept();

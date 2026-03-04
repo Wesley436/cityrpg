@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../config/api';
 import MapView, { Circle, Marker, Region } from 'react-native-maps';
@@ -12,6 +12,8 @@ import axios from "axios";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import useUserData from '@/hooks/useUserData';
+import { useFocusEffect } from 'expo-router';
 
 const styles = StyleSheet.create({
   container: {
@@ -50,7 +52,7 @@ const styles = StyleSheet.create({
   }
 });
 
-const INTERACTION_RANGE = 300
+const INTERACTION_RANGE = 400
 
 function deg2rad(deg: number) {
     return deg * (Math.PI/180)
@@ -87,6 +89,8 @@ const MapScreen = () => {
     });
 
     const [interactables, setInteractables] = useState([])
+    
+    const { userData, fetchUserData } = useUserData()
 
     useEffect(() => {
         const getCurrentLocation = async () => {
@@ -109,6 +113,12 @@ const MapScreen = () => {
         };
         getCurrentLocation();
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserData()
+        }, [])
+    );
 
     useEffect(() => {
         (async () => {
@@ -145,6 +155,32 @@ const MapScreen = () => {
             clearInterval(interval);
         };
     }, []);
+
+    function getInteractionRange() {
+        var range = INTERACTION_RANGE
+
+        if (userData?.helmet) {
+            const helmet = JSON.parse(userData.helmet)
+            switch (helmet.rarity) {
+                case "Common":
+                    range += 50
+                    break;
+                case "Uncommon":
+                    range += 100
+                    break;
+                case "Rare":
+                    range += 150
+                    break;
+                case "Epic":
+                    range += 200
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return range
+    }
 
     function onRegionChangeComplete(region: Region | AnimatedMapRegion | undefined) {
         setCurrentRegion(region)
@@ -258,7 +294,7 @@ const MapScreen = () => {
                             latitude: currentLatitude,
                             longitude: currentLongitude
                         }}
-                        radius = { INTERACTION_RANGE }
+                        radius = { getInteractionRange() }
                         strokeWidth = { 2 }
                         strokeColor = { '#00349c' }
                         fillColor = { 'rgba(233, 240, 255, 0.18)' }
@@ -270,7 +306,7 @@ const MapScreen = () => {
                         <MaterialCommunityIcons name="human-child" size={48} color={"#59ff59"} />
                     </Marker>
                     {
-                        interactables.map((interactable: {id: string, latitude: number, longitude: number, type: string, title: string}) => {
+                        interactables.map((interactable: {id: string, latitude: number, longitude: number, type: string, title: string, rarity?: string}) => {
                             var icon
                             switch (interactable.type) {
                                 case "event":
@@ -296,7 +332,7 @@ const MapScreen = () => {
                                         longitude: interactable.longitude
                                     }}
                                     onPress={() => {
-                                        if (distanceBetweenPoints(interactable.latitude, interactable.longitude, currentLatitude, currentLongitude) < INTERACTION_RANGE) {
+                                        if (distanceBetweenPoints(interactable.latitude, interactable.longitude, currentLatitude, currentLongitude) < getInteractionRange()) {
                                             var modalText = "TBD"
                                             var modalButtonText = "TBD"
                                             switch (interactable.type) {
@@ -318,6 +354,10 @@ const MapScreen = () => {
                                                     modalText = "Invalid icon"
                                             }
                                             
+                                            if (interactable.rarity) {
+                                                modalText += ` (${interactable.rarity})`
+                                            }
+
                                             setModalText(modalText)
                                             setModalButtonText(modalButtonText)
                                             setShowModal(true)
