@@ -1,5 +1,4 @@
-import { useState, useEffect, JSX, SetStateAction } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect, JSX } from 'react';
 import api from '../../../config/api';
 import { FlatList, Modal, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
@@ -20,6 +19,15 @@ const styles = StyleSheet.create({
   },
   equipment_section: {
     height: "33.33%",
+    flex: 1,
+  },
+  stat_section: {
+    padding: 10,
+    flexDirection: "row"
+  },
+  stat: {
+    padding: 5,
+    width: "25%"
   },
   inventory_section: {
     height: "66.66%",
@@ -56,8 +64,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff1c"
   },
   item_grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    // flexDirection: 'row',
+    // flexWrap: 'wrap'
+    paddingBottom: "25%"
   },
   item_box: {
     borderRadius: 20,
@@ -111,7 +120,7 @@ const InventoryScreen = () => {
     const [onModalAccept, setOnModalAccept] = useState(() => () => {})
     const [usingItem, setUsingItem] = useState(false)
  
-    const { userData, setUserData, inventory, fetchUserData, updateInventory } = useUserData()
+    const { userData, updateUserData, inventory, fetchUserData, updateInventory } = useUserData()
 
     useEffect(() => {
         console.log("Starting interval to refresh inventory");
@@ -142,6 +151,7 @@ const InventoryScreen = () => {
                 return 0
             }
         });
+        
         return temp
     }
 
@@ -180,7 +190,7 @@ const InventoryScreen = () => {
         const lowercaseSlot = slot.toLowerCase()
 
         var onPress = () => {
-            const item = JSON.parse(userData[lowercaseSlot])
+            const item = userData[lowercaseSlot]
             setModalTextForItem(item)
 
             setModalButtonText("Unequip")
@@ -190,11 +200,10 @@ const InventoryScreen = () => {
                 setUsingItem(true)
                 await api.post("/user/use-item", {"item_id": lowercaseSlot})
                 .then(async function (response) {
-                    console.log(response.data)
-
-                    const user = response?.data
-                    setUserData(user || {})
-                    updateInventory(response.data.inventory)
+                    if (response.data) {
+                        const user = response?.data
+                        await updateUserData(user)
+                    }
                 })
                 .catch(function (error) {
                     if (axios.isAxiosError(error)) {
@@ -208,7 +217,7 @@ const InventoryScreen = () => {
             setShowModal(true)
         }
 
-        const equippedItemString = userData[lowercaseSlot]
+        const equippedItem = userData[lowercaseSlot]
         
         var itemProps = {
             size: 48,
@@ -217,8 +226,7 @@ const InventoryScreen = () => {
             style: {}
         }
 
-        if (equippedItemString) {
-            const equippedItem = JSON.parse(equippedItemString)
+        if (equippedItem) {
             itemProps.onPress = onPress
 
             itemProps.style = {"opacity": equippedItem ? 1 : 0.2}
@@ -252,11 +260,10 @@ const InventoryScreen = () => {
                 setUsingItem(true)
                 await api.post("/user/use-item", {"item_id": item.id})
                 .then(async function (response) {
-                    console.log(response.data)
-                    
-                    const user = response?.data
-                    setUserData(user || {})
-                    updateInventory(response.data.inventory)
+                    if (response.data) {
+                        const user = response?.data
+                        await updateUserData(user)
+                    }
                 })
                 .catch(function (error) {
                     if (axios.isAxiosError(error)) {
@@ -316,6 +323,13 @@ const InventoryScreen = () => {
                         <View style={styles.equipment_box}>
                             {getEquippedItemIconFromSlot("Shield")}
                         </View>
+                    </View>
+
+                    <View style={styles.stat_section}>
+                        <Text style={{...styles.stat, color: "lightgreen"}}>HP{"\n"}{userData.health?.current} / {userData.health?.currentMax}</Text>
+                        <Text style={{...styles.stat, color: "red"}}>Strength{"\n"}{userData.strength?.currentBeforeAdditional + (userData.strength?.additional ? ` + ${userData.strength?.additional}` : "")}</Text>
+                        <Text style={{...styles.stat, color: "#3da6ec"}}>Defense{"\n"}{userData.defense?.currentBeforeAdditional + (userData.defense?.additional ? ` + ${userData.defense?.additional}` : "")}</Text>
+                        <Text style={{...styles.stat, color: "yellow"}}>Speed{"\n"}{userData.speed?.currentBeforeAdditional + (userData.speed?.additional ? ` + ${userData.speed?.additional}` : "")}</Text>
                     </View>
                 </View>
 

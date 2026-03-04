@@ -52,8 +52,6 @@ const styles = StyleSheet.create({
   }
 });
 
-const INTERACTION_RANGE = 400
-
 function deg2rad(deg: number) {
     return deg * (Math.PI/180)
 }
@@ -90,7 +88,7 @@ const MapScreen = () => {
 
     const [interactables, setInteractables] = useState([])
     
-    const { userData, fetchUserData } = useUserData()
+    const { getInteractionRange, fetchUserData } = useUserData()
 
     useEffect(() => {
         const getCurrentLocation = async () => {
@@ -155,32 +153,6 @@ const MapScreen = () => {
             clearInterval(interval);
         };
     }, []);
-
-    function getInteractionRange() {
-        var range = INTERACTION_RANGE
-
-        if (userData?.helmet) {
-            const helmet = JSON.parse(userData.helmet)
-            switch (helmet.rarity) {
-                case "Common":
-                    range += 50
-                    break;
-                case "Uncommon":
-                    range += 100
-                    break;
-                case "Rare":
-                    range += 150
-                    break;
-                case "Epic":
-                    range += 200
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return range
-    }
 
     function onRegionChangeComplete(region: Region | AnimatedMapRegion | undefined) {
         setCurrentRegion(region)
@@ -250,7 +222,6 @@ const MapScreen = () => {
                 "bottom_right_longitude": bottomRightLongitude
             })
             .then(function (response) {
-                // console.log(response?.data)
                 if (response?.data) {
                     setInteractables(response?.data.interactables)
                 }
@@ -268,7 +239,6 @@ const MapScreen = () => {
         if (uidValue) {
             await api.post("/map/pick-up", {"interactable_id": interactable.id})
             .then(async function (response) {
-                // console.log(response.data)
                 refreshMap(currentRegion)
             })
             .catch(function (error) {

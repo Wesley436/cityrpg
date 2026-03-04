@@ -4,6 +4,144 @@ import api from '@/config/api';
 import Alert from '@blazejkustra/react-native-alert';
 import axios from "axios";
 
+const INTERACTION_RANGE = 400
+const BASE_HP = 100
+const BASE_STRENGTH = 100
+const BASE_DEFENSE = 100
+const BASE_SPEED = 100
+
+const calculateEquipmentDefense = (user: { chestplate: { title: any; rarity: any; }; }) => {
+    var defenseEquipment = 0
+    if (user.chestplate) {
+        switch (user.chestplate.title) {
+            case "Chestplate":
+                switch (user.chestplate.rarity) {
+                    case "Common":
+                        defenseEquipment += 5
+                        break;
+                    case "Uncommon":
+                        defenseEquipment += 10
+                        break;
+                    case "Rare":
+                        defenseEquipment += 15
+                        break;
+                    case "Epic":
+                        defenseEquipment += 20
+                        break;
+                }
+                break;
+        }
+    }
+
+    return defenseEquipment
+}
+
+const calculateEquipmentSpeed = (user: { boots: { title: any; rarity: any; }; }) => {
+    var speedEquipment = 0
+    if (user.boots) {
+        switch (user.boots.title) {
+            case "Boots":
+                switch (user.boots.rarity) {
+                    case "Common":
+                        speedEquipment += 5
+                        break;
+                    case "Uncommon":
+                        speedEquipment += 10
+                        break;
+                    case "Rare":
+                        speedEquipment += 15
+                        break;
+                    case "Epic":
+                        speedEquipment += 20
+                        break;
+                }
+                break;
+        }
+    }
+
+    return speedEquipment
+}
+
+const calculateStats = async (user: any) => {
+    const healthBefore = user.health ? JSON.parse(user.health) : null
+
+    const statsBefore = {
+        health: user.health ? JSON.parse(user.health) : null,
+        strength: user.strength ? JSON.parse(user.strength) : null,
+        defense: user.defense ? JSON.parse(user.defense) : null,
+        speed: user.speed ? JSON.parse(user.speed) : null
+    }
+
+    const statusEffectsObject = user.status_effects ? user.status_effects : {}
+    var statusEffects = Object.keys(statusEffectsObject).map(function (key) {
+        return statusEffectsObject[key];
+    });
+
+    var maxHealthEquipment = 0
+    var maxHealthAdditional = 0
+    var maxHealth = BASE_HP + maxHealthEquipment + maxHealthAdditional
+
+    var currentHealth = healthBefore?.current || maxHealth
+    user.health = {
+        current: currentHealth,
+        maxBase: BASE_HP,
+        maxEquipment: maxHealthEquipment,
+        maxAdditional: maxHealthAdditional,
+        maxBeforeAdditional: BASE_HP + maxHealthEquipment,
+        currentMax: maxHealth,
+    }
+
+    var strengthEquipment = 0
+    const strengthEffects = statusEffects.filter((e: { type: string }) => e.type == "strength")
+    var strengthAdditional = strengthEffects.reduce((a, e) => a + e.amount, 0)
+    user.strength = {
+        base: BASE_STRENGTH,
+        equipment: strengthEquipment,
+        additional: strengthAdditional,
+        currentBeforeAdditional: BASE_STRENGTH + strengthEquipment,
+        current: BASE_STRENGTH + strengthEquipment + strengthAdditional
+    }
+
+    var defenseEquipment = calculateEquipmentDefense(user)
+    const defenseEffects = statusEffects.filter((e: { type: string }) => e.type == "defense")
+    var defenseAdditional = defenseEffects.reduce((a, e) => a + e.amount, 0)
+    user.defense = {
+        base: BASE_DEFENSE,
+        equipment: defenseEquipment,
+        additional: defenseAdditional,
+        currentBeforeAdditional: BASE_DEFENSE + defenseEquipment,
+        current: BASE_DEFENSE + defenseEquipment + defenseAdditional
+    }
+
+    var speedEquipment = calculateEquipmentSpeed(user)
+    const speedEffects = statusEffects.filter((e: { type: string }) => e.type == "speed")
+    var speedAdditional = speedEffects.reduce((a, e) => a + e.amount, 0)
+    user.speed = {
+        base: BASE_SPEED,
+        equipment: speedEquipment,
+        additional: speedAdditional,
+        currentBeforeAdditional: BASE_SPEED + speedEquipment,
+        current: BASE_SPEED + speedEquipment + speedAdditional
+    }
+
+    const statsAfter = {
+        health: user.health,
+        strength: user.strength,
+        defense: user.defense,
+        speed: user.speed
+    }
+
+    if (JSON.stringify(statsBefore) !== JSON.stringify(statsAfter)) {
+        console.log("Updating stats")
+        await api.post("/user/update-stats", statsAfter)
+        .catch(function (error) {
+            if (axios.isAxiosError(error)) {
+                Alert.alert(error.response?.data.error)
+            }
+        })
+    }
+}
+
 const useUserData = () => {
     const [userData, setUserData] = useState({})
     const [inventory, setInventory] = useState<any>([])
@@ -15,9 +153,51 @@ const useUserData = () => {
             items.push(item)
         });
 
-
-
         setInventory(items)
+        return items
+    }
+
+    const getInteractionRange = () => {
+        var range = INTERACTION_RANGE
+
+        if (userData?.helmet) {
+            const helmet = userData.helmet
+            switch (helmet.rarity) {
+                case "Common":
+                    range += 50
+                    break;
+                case "Uncommon":
+                    range += 100
+                    break;
+                case "Rare":
+                    range += 150
+                    break;
+                case "Epic":
+                    range += 200
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return range
+    }
+
+    const updateUserData = async (user: any) => {
+        if (user) {
+            for (const key of ["helmet", "chestplate", "boots", "weapon", "shield"]) {
+                if (user[key]) {
+                    user[key] = JSON.parse(user[key])
+                }
+            }
+
+            const items = updateInventory(user.inventory)
+            user.inventory = items
+
+            await calculateStats(user)
+        }
+
+        setUserData(user || {})
     }
 
     const fetchUserData = async () => {
@@ -28,11 +208,7 @@ const useUserData = () => {
                 await api.get(`/user/${JSON.parse(uidValue)}`)
                 .then(async (response) => {
                     const user = response?.data
-                    setUserData(user || {})
-                    // console.log(user)
-                    if (user) {
-                        updateInventory(user.inventory)
-                    }
+                    await updateUserData(user)
                 })
             }
         } catch (error) {
@@ -43,7 +219,7 @@ const useUserData = () => {
         }
     };
 
-    return { userData, setUserData, inventory, setInventory, fetchUserData, updateInventory }
+    return { userData, updateUserData, inventory, setInventory, fetchUserData, updateInventory, getInteractionRange }
 }
 
 export default useUserData
