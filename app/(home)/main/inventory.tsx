@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   modalButton: {
     // minWidth: "25%",
     width: "40%",
-    marginTop: "auto",
+    marginVertical: "1%",
     marginHorizontal: "5%"
   },
   modalButtonText: {
@@ -118,9 +118,10 @@ const InventoryScreen = () => {
     const [modalDescription, setModalDescription] = useState("")
     const [modalButtonText, setModalButtonText] = useState("")
     const [onModalAccept, setOnModalAccept] = useState(() => () => {})
-    const [usingItem, setUsingItem] = useState(false)
+    const [onModalDiscard, setOnModalDiscard] = useState(() => () => {})
+    const [processingItem, setProcessingItem] = useState(false)
  
-    const { userData, updateUserData, inventory, fetchUserData, updateInventory } = useUserData()
+    const { userData, updateUserData, inventory, fetchUserData } = useUserData()
 
     useEffect(() => {
         console.log("Starting interval to refresh inventory");
@@ -186,33 +187,39 @@ const InventoryScreen = () => {
         }
     }
 
+    const sentItem = async (url: string, item_id: string) => {
+        setShowModal(false)
+        setProcessingItem(true)
+        await api.post(url, {"item_id": item_id})
+        .then(async function (response) {
+            if (response.data) {
+                const user = response?.data
+                await updateUserData(user)
+            }
+        })
+        .catch(function (error) {
+            if (axios.isAxiosError(error)) {
+                Alert.alert(error.response?.data.error)
+            }
+        })
+        .finally(() => {
+            setProcessingItem(false)
+        })
+    }
+
     const getEquippedItemIconFromSlot = (slot: string) => {
         const lowercaseSlot = slot.toLowerCase()
 
         var onPress = () => {
             const item = userData[lowercaseSlot]
             setModalTextForItem(item)
-
             setModalButtonText("Unequip")
 
             setOnModalAccept(() => async () => {
-                setShowModal(false)
-                setUsingItem(true)
-                await api.post("/user/use-item", {"item_id": lowercaseSlot})
-                .then(async function (response) {
-                    if (response.data) {
-                        const user = response?.data
-                        await updateUserData(user)
-                    }
-                })
-                .catch(function (error) {
-                    if (axios.isAxiosError(error)) {
-                        Alert.alert(error.response?.data.error)
-                    }
-                })
-                .finally(() => {
-                    setUsingItem(false)
-                })
+                sentItem("/user/use-item", lowercaseSlot)
+            })
+            setOnModalDiscard(() => async () => {
+                sentItem("/user/discard-item", item.id)
             })
             setShowModal(true)
         }
@@ -221,7 +228,7 @@ const InventoryScreen = () => {
         
         var itemProps = {
             size: 48,
-            disabled: usingItem,
+            disabled: processingItem,
             onPress: () => {},
             style: {}
         }
@@ -256,23 +263,10 @@ const InventoryScreen = () => {
                     setModalButtonText("OK")
             }
             setOnModalAccept(() => async () => {
-                setShowModal(false)
-                setUsingItem(true)
-                await api.post("/user/use-item", {"item_id": item.id})
-                .then(async function (response) {
-                    if (response.data) {
-                        const user = response?.data
-                        await updateUserData(user)
-                    }
-                })
-                .catch(function (error) {
-                    if (axios.isAxiosError(error)) {
-                        Alert.alert(error.response?.data.error)
-                    }
-                })
-                .finally(() => {
-                    setUsingItem(false)
-                })
+                await sentItem("/user/use-item", item.id)
+            })
+            setOnModalDiscard(() => async () => {
+                await sentItem("/user/discard-item", item.id)
             })
             setShowModal(true)
         }
@@ -280,7 +274,7 @@ const InventoryScreen = () => {
         const itemProps = {
             size: 48,
             onPress: onPress,
-            disabled: usingItem
+            disabled: processingItem
         }
         var icon = getItemIconFromTitle(item.title, itemProps)
 
@@ -380,15 +374,26 @@ const InventoryScreen = () => {
                                 &&
                                 <Text style={styles.modalDescription}>{modalDescription}</Text>
                             }
-                            <View style={{flex: 1, flexDirection: "row", alignItems: "center"}}>
+                            <View style={{flex: 1, flexDirection: "row", alignItems: "center", flexWrap: "wrap", justifyContent: "center"}}>
                                 <Button style={styles.modalButton} onPress={() => {
                                     onModalAccept();
-                                    setShowModal(false)
                                     setOnModalAccept(() => () => {})
+                                    setOnModalDiscard(() => () => {})
                                 }}>
                                     <Text style={styles.modalButtonText}>{modalButtonText}</Text>
                                 </Button>
-                                <Button style={styles.modalButton} onPress={() => {setShowModal(false)}}>
+                                <Button style={styles.modalButton} onPress={() => {
+                                    onModalDiscard()
+                                    setOnModalAccept(() => () => {})
+                                    setOnModalDiscard(() => () => {})
+                                }}>
+                                    <Text style={styles.modalButtonText}>Discard</Text>
+                                </Button>
+                                <Button style={styles.modalButton} onPress={() => {
+                                    setShowModal(false)
+                                    setOnModalAccept(() => () => {})
+                                    setOnModalDiscard(() => () => {})
+                                }}>
                                     <Text style={styles.modalButtonText}>Cancel</Text>
                                 </Button>
                             </View>
