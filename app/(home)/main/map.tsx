@@ -14,6 +14,7 @@ import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import useUserData from '@/hooks/useUserData';
 import { useFocusEffect } from 'expo-router';
+import { useRouter } from "expo-router";
 
 const styles = StyleSheet.create({
   container: {
@@ -70,6 +71,8 @@ function distanceBetweenPoints(lat1: number, lon1: number, lat2: number, lon2: n
 }
 
 const MapScreen = () => {
+    const router = useRouter()
+
     const [currentLatitude, setCurrentLatitude] = useState(0.0)
     const [currentLongitude, setCurrentLongitude] = useState(0.0)
     const [currentRegion, setCurrentRegion] = useState<Region | AnimatedMapRegion | undefined>()
@@ -238,8 +241,23 @@ const MapScreen = () => {
         const uidValue = await AsyncStorage.getItem('uid')
         if (uidValue) {
             await api.post("/map/pick-up", {"interactable_id": interactable.id})
-            .then(async function (response) {
+            .then(function () {
                 refreshMap(currentRegion)
+            })
+            .catch(function (error) {
+                if (axios.isAxiosError(error)) {
+                    Alert.alert(error.response?.data.error)
+                }
+            })
+        }
+    }
+
+    async function startBattle(interactable: { id: any; }) {
+        const uidValue = await AsyncStorage.getItem('uid')
+        if (uidValue) {
+            await api.post("/map/start-battle", {"interactable_id": interactable.id})
+            .then(function () {
+                router.replace("/main/battle")
             })
             .catch(function (error) {
                 if (axios.isAxiosError(error)) {
@@ -309,6 +327,9 @@ const MapScreen = () => {
                                                 case "event":
                                                     break;
                                                 case "monster":
+                                                    modalText = interactable.title
+                                                    modalButtonText = "Fight"
+                                                    setOnModalAccept(() => () => startBattle(interactable))
                                                     break;
                                                 case "item":
                                                     modalText = interactable.title
