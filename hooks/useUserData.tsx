@@ -10,53 +10,28 @@ const BASE_STRENGTH = 100
 const BASE_DEFENSE = 100
 const BASE_SPEED = 100
 
-const calculateEquipmentDefense = (user: { chestplate: { title: any; rarity: any; }; }) => {
+const calculateEquipmentStrength = (user: { weapon: { strength: any; }; }) => {
+    var strengthEquipment = 0
+    if (user.weapon?.strength) {
+        strengthEquipment += user.weapon.strength
+    }
+
+    return strengthEquipment
+}
+
+const calculateEquipmentDefense = (user: { chestplate: { defense: any; }; }) => {
     var defenseEquipment = 0
-    if (user.chestplate) {
-        switch (user.chestplate.title) {
-            case "Chestplate":
-                switch (user.chestplate.rarity) {
-                    case "Common":
-                        defenseEquipment += 5
-                        break;
-                    case "Uncommon":
-                        defenseEquipment += 10
-                        break;
-                    case "Rare":
-                        defenseEquipment += 15
-                        break;
-                    case "Epic":
-                        defenseEquipment += 20
-                        break;
-                }
-                break;
-        }
+    if (user.chestplate?.defense) {
+        defenseEquipment += user.chestplate.defense
     }
 
     return defenseEquipment
 }
 
-const calculateEquipmentSpeed = (user: { boots: { title: any; rarity: any; }; }) => {
+const calculateEquipmentSpeed = (user: { boots: { speed: any; }; }) => {
     var speedEquipment = 0
-    if (user.boots) {
-        switch (user.boots.title) {
-            case "Boots":
-                switch (user.boots.rarity) {
-                    case "Common":
-                        speedEquipment += 5
-                        break;
-                    case "Uncommon":
-                        speedEquipment += 10
-                        break;
-                    case "Rare":
-                        speedEquipment += 15
-                        break;
-                    case "Epic":
-                        speedEquipment += 20
-                        break;
-                }
-                break;
-        }
+    if (user.boots?.speed) {
+        speedEquipment += user.boots.speed
     }
 
     return speedEquipment
@@ -91,7 +66,7 @@ const calculateStats = async (user: any) => {
         currentMax: maxHealth,
     }
 
-    var strengthEquipment = 0
+    var strengthEquipment = calculateEquipmentStrength(user)
     const strengthEffects = statusEffects.filter((e: { type: string }) => e.type == "strength")
     var strengthAdditional = strengthEffects.reduce((a, e) => a + e.amount, 0)
     user.strength = {
