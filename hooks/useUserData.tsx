@@ -56,7 +56,7 @@ const calculateStats = async (user: any) => {
     var maxHealthAdditional = 0
     var maxHealth = BASE_HP + maxHealthEquipment + maxHealthAdditional
 
-    var currentHealth = healthBefore?.current || maxHealth
+    var currentHealth = healthBefore?.current === null ? maxHealth : healthBefore?.current
     user.health = {
         current: currentHealth,
         maxBase: BASE_HP,
@@ -176,7 +176,7 @@ const useUserData = () => {
     }
 
     const fetchUserData = async () => {
-        console.log("Fetching userData")
+        // console.log("Fetching userData")
         try {
             const uidValue = await AsyncStorage.getItem('uid')
             if (uidValue) {

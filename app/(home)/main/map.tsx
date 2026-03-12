@@ -192,7 +192,7 @@ const MapScreen = () => {
         }
         
         if (region && !refreshTimeout) {
-            console.log("Refreshing map");
+            // console.log("Refreshing map");
             const timeout = setTimeout(function() {setRefreshTimeout(null)}, 5000)
             setRefreshTimeout(timeout)
             const lat = region.latitude

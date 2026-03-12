@@ -42,7 +42,7 @@ const BattleScreen = () => {
     const router = useRouter()
     
     const [battle, setBattle] = useState({})
-    const [actionBar, setActionBar] = useState([])
+    const [actionBar, setActionBar] = useState<{ entity: any; cooldown: any; }[]>([])
     const [processingAction, setProcessingAction] = useState(false)
 
     const scrollViewRef = useRef(null);
@@ -52,7 +52,7 @@ const BattleScreen = () => {
             return
         }
 
-        console.log("Fetching battle")
+        // console.log("Fetching battle")
 
         try {
             const uidValue = await AsyncStorage.getItem('uid')
@@ -76,7 +76,21 @@ const BattleScreen = () => {
                     if (battle.action_bar) {
                         setActionBar(battle.action_bar)
                     } else {
-                        
+                        var new_action_bar = []
+                        var user_action = {
+                            entity: "user",
+                            cooldown: 0
+                        }
+
+                        var monster_action = {
+                            entity: battle.monster.title,
+                            cooldown: battle.monster.delay
+                        }
+
+                        new_action_bar.push(user_action)
+                        new_action_bar.push(monster_action)
+
+                        setActionBar(new_action_bar)
                     }
 
                     setBattle(battle)
@@ -103,6 +117,11 @@ const BattleScreen = () => {
     const updateBattle = async (battle) => {
         const updatingBattle = {...battle}
 
+        if (updatingBattle.logs[updatingBattle.logs.length - 1] === "You are defeated") {
+            setBattle({})
+            return
+        }
+
         if (typeof battle.monster === "object") {
             updatingBattle.monster = JSON.stringify(updatingBattle.monster)
         }
@@ -110,7 +129,7 @@ const BattleScreen = () => {
             updatingBattle.user = JSON.stringify(updatingBattle.user)
         }
 
-        await api.post("/battle/update-battle", {"battle": updatingBattle})
+        await api.post("/battle/update-battle", {"battle": updatingBattle, "action_bar": actionBar})
         .catch(function (error) {
             if (axios.isAxiosError(error)) {
                 Alert.alert(error.response?.data.error)
@@ -123,7 +142,7 @@ const BattleScreen = () => {
 
     const endBattle = async (battle) => {
         await api.post("/battle/end-battle", {"battle": battle})
-        .then(function () {
+        .then(async function () {
             router.replace("/main/map")
         })
         .catch(function (error) {
@@ -136,18 +155,20 @@ const BattleScreen = () => {
         })
     }
 
-    const processAction = async (action) => {
+    const processAction = async (latest_battle, entity: { strength: string | number; }, action: { base_damage: any; action_id?: any; name?: any; base_cooldown?: any; }) => {
         setProcessingAction(true)
-        const latest_battle = {...battle}
 
         var damage = 0
         if (action.base_damage) {
-            damage = getActionDamage(action)
+            damage = getActionDamage(entity.strength, action)
         }
 
         if (!latest_battle.logs) {
             latest_battle.logs = []
         }
+
+        var user_health = JSON.parse(latest_battle.user.health)
+        var user_defense = JSON.parse(latest_battle.user.defense)
 
         switch (action.action_id) {
             case 1:
@@ -158,6 +179,16 @@ const BattleScreen = () => {
                 latest_battle.monster.current_health -= damage
                 latest_battle.logs.push(`${battle.monster.title} took ${damage} damage from ${action.name}`)
                 break;
+            case 3:
+                damage = getDamgeAfterDefense(damage, user_defense.current)
+                user_health.current -= damage
+                latest_battle.logs.push(`You took ${damage} damage from ${action.name}`)
+                break;
+            case 4:
+                damage = getDamgeAfterDefense(damage, user_defense.current)
+                user_health.current -= damage
+                latest_battle.logs.push(`You took ${damage} damage from ${action.name}`)
+                break;
             case 999:
                 await endBattle(latest_battle)
                 return
@@ -165,50 +196,109 @@ const BattleScreen = () => {
                 break;
         }
 
-        if (latest_battle.monster.current_health < 0) {
+        latest_battle.user.health = JSON.stringify(user_health)
+
+        if (latest_battle.monster.current_health <= 0) {
             latest_battle.logs.push(`${battle.monster.title} is defeated`)
+            Alert.alert(`${battle.monster.title} is defeated`)
             await endBattle(latest_battle)
-        } else if (latest_battle.user.current_health < 0) {
+
+            return
+        } else if (user_health.current <= 0) {
             latest_battle.logs.push(`You are defeated`)
+            Alert.alert(`You are defeated`)
             await endBattle(latest_battle)
+
+            return
         } else {
-            setBattle(latest_battle)
-            await updateBattle(latest_battle)
+            await nextAction(latest_battle, action.base_cooldown)
+        }
+
+        setBattle(latest_battle)
+        await updateBattle(latest_battle)
+    }
+    
+    const nextAction = async (latest_battle: { user?: any; monster?: any; }, base_cooldown: number) => {
+        var current_entity = actionBar.shift()
+
+        if (current_entity) {
+            var speed = 100
+
+            if (current_entity.entity === "user") {
+                speed = JSON.parse(latest_battle.user.speed).current
+            } else {
+                speed = latest_battle.monster.speed
+            }
+
+            var cooldown = base_cooldown * 100 / speed
+            current_entity.cooldown = cooldown
+
+            actionBar.push(current_entity)
+            actionBar.sort((a, b) => a.cooldown - b.cooldown)
+        }
+
+        const passed_cooldown = actionBar[0].cooldown
+
+        actionBar.forEach((entity) => {
+            entity.cooldown -= passed_cooldown
+        })
+
+        if (actionBar[0].entity !== "user") {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+
+            const actions = latest_battle.monster.actions
+            await processAction(latest_battle, latest_battle.monster, actions[Math.floor(Math.random()*actions.length)])
         }
     }
 
     const ActionBox = ({item}) => {
         const onPress = async () => {
-            await processAction(item)
+            await processAction({...battle}, battle.user, item)
         }
 
         var backgroundColor = "#ffffff1c"
 
         return (
-            <TouchableOpacity disabled={processingAction} onPress={onPress} key={item.id} style={{...styles.action_box, backgroundColor: backgroundColor}}>
+            <TouchableOpacity disabled={item.name !== "Escape" && (processingAction || !isPlayerTurn() || JSON.parse(battle.user.health).current === 0)} onPress={onPress} key={item.id} style={{...styles.action_box, backgroundColor: backgroundColor}}>
                 <Text>{item.name}</Text>
                 {
                     item.base_damage
                     &&
-                    <Text>{getActionDamage(item)}</Text>
+                    <Text>{getActionDamage(battle.user.strength, item)} damage</Text>
                 }
             </TouchableOpacity>
         )
     }
 
-    const getActionDamage = (action) => {
-        if (action.base_damage && battle.user?.strength) {
-            const strength = JSON.parse(battle.user?.strength)
-            return action.base_damage * strength.current / 100
+    const getActionDamage = (strength: number | string, action: { base_damage: number; }) => {
+        var str = 0
+        if (typeof strength === "string") {
+            str = JSON.parse(strength).current
+        } else {
+            str = strength
+        }
+
+        if (action.base_damage && str) {
+            return action.base_damage * str / 100
         } else {
             return 0
         }
     }
 
+    const getDamgeAfterDefense = (damage: number, defense: number) => {
+        return parseFloat(
+            (
+                damage
+                * (1 - (defense / (defense + 200)))
+            )
+            .toFixed(2)
+        )
+    }
+
     const getActionList = () => {
         const actions = []
-        if (battle.user?.weapon) {
-            const weapon = JSON.parse(battle.user?.weapon)
+        if (battle.user.weapon) {
+            const weapon = JSON.parse(battle.user.weapon)
             actions.push(...weapon.actions)
         }
 
@@ -224,7 +314,7 @@ const BattleScreen = () => {
     }
 
     const isPlayerTurn = () => {
-        return true
+        return actionBar[0].entity === "user"
     }
 
     return (
@@ -236,15 +326,15 @@ const BattleScreen = () => {
                     <View style={styles.battle_section}>
                         <View style={styles.half_battle_section}>
                             <Text>Your Health</Text>
-                            <Text>{JSON.parse(battle.user?.health)?.current} / {JSON.parse(battle.user?.health)?.currentMax}</Text>
+                            <Text>{JSON.parse(battle.user.health).current} / {JSON.parse(battle.user.health).currentMax}</Text>
                             <Text></Text>
-                            <Text>{battle.monster?.title}</Text>
-                            <Text>{battle.monster?.current_health} / {battle.monster?.max_health}</Text>
+                            <Text>{battle.monster.title}</Text>
+                            <Text>{battle.monster.current_health} / {battle.monster.max_health}</Text>
 
                             <Text></Text>
                             <Text></Text>
 
-                                <Text style={{fontSize: 32}}>{isPlayerTurn() ? "Your Turn": "Enemy Turn"}</Text>
+                                <Text style={{fontSize: 24}}>{isPlayerTurn() ? "Your Turn": "Enemy Turn"}</Text>
                         </View>
                         <ScrollView
                             style={styles.half_battle_section}
