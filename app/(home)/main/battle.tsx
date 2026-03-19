@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity, Image } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -317,6 +317,19 @@ const BattleScreen = () => {
         return actionBar[0].entity === "user"
     }
 
+    const getMonsterImagePath = () => {
+        switch(battle.monster.title) {
+            case "Slime":
+                return require("../../../assets/images/slime.png")
+            case "Wolf":
+                return require("../../../assets/images/wolf.png")
+            case "Bear":
+                return require("../../../assets/images/bear.png")
+            default:
+                return require("../../../assets/images/slime.png")
+        }
+    }
+
     return (
         <View style={styles.container}>
             {
@@ -326,10 +339,19 @@ const BattleScreen = () => {
                     <View style={styles.battle_section}>
                         <View style={styles.half_battle_section}>
                             <Text>Your Health</Text>
-                            <Text>{JSON.parse(battle.user.health).current} / {JSON.parse(battle.user.health).currentMax}</Text>
+                            <Text>{(JSON.parse(battle.user.health).current).toFixed(2)} / {JSON.parse(battle.user.health).currentMax}</Text>
                             <Text></Text>
-                            <Text>{battle.monster.title}</Text>
-                            <Text>{battle.monster.current_health} / {battle.monster.max_health}</Text>
+                            <View style={{flex: 1, flexDirection: "row"}}>
+                                <View>
+                                    <Text>{battle.monster.title}</Text>
+                                    <Text>{battle.monster.current_health} / {battle.monster.max_health}</Text>
+                                </View>
+                                <Image source={
+                                    getMonsterImagePath()
+                                }
+                                style={{ width: 100, height: 100 }}
+                                />
+                            </View>
 
                             <Text></Text>
                             <Text></Text>

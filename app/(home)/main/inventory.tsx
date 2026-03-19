@@ -320,7 +320,7 @@ const InventoryScreen = () => {
                     </View>
 
                     <View style={styles.stat_section}>
-                        <Text style={{...styles.stat, color: "lightgreen"}}>HP{"\n"}{userData.health?.current} / {userData.health?.currentMax}</Text>
+                        <Text style={{...styles.stat, color: "lightgreen"}}>HP{"\n"}{parseFloat(userData.health?.current.toFixed(2))} / {userData.health?.currentMax}</Text>
                         <Text style={{...styles.stat, color: "red"}}>Strength{"\n"}{userData.strength?.currentBeforeAdditional + (userData.strength?.additional ? ` + ${userData.strength?.additional}` : "")}</Text>
                         <Text style={{...styles.stat, color: "#3da6ec"}}>Defense{"\n"}{userData.defense?.currentBeforeAdditional + (userData.defense?.additional ? ` + ${userData.defense?.additional}` : "")}</Text>
                         <Text style={{...styles.stat, color: "yellow"}}>Speed{"\n"}{userData.speed?.currentBeforeAdditional + (userData.speed?.additional ? ` + ${userData.speed?.additional}` : "")}</Text>
@@ -383,18 +383,18 @@ const InventoryScreen = () => {
                                     <Text style={styles.modalButtonText}>{modalButtonText}</Text>
                                 </Button>
                                 <Button style={styles.modalButton} onPress={() => {
-                                    onModalDiscard()
-                                    setOnModalAccept(() => () => {})
-                                    setOnModalDiscard(() => () => {})
-                                }}>
-                                    <Text style={styles.modalButtonText}>Discard</Text>
-                                </Button>
-                                <Button style={styles.modalButton} onPress={() => {
                                     setShowModal(false)
                                     setOnModalAccept(() => () => {})
                                     setOnModalDiscard(() => () => {})
                                 }}>
                                     <Text style={styles.modalButtonText}>Cancel</Text>
+                                </Button>
+                                <Button style={styles.modalButton} onPress={() => {
+                                    onModalDiscard()
+                                    setOnModalAccept(() => () => {})
+                                    setOnModalDiscard(() => () => {})
+                                }}>
+                                    <Text style={styles.modalButtonText}>Discard</Text>
                                 </Button>
                             </View>
                         </View>
