@@ -43,14 +43,15 @@ export default function MainLayout() {
               <AntDesign name="menu" size={24} color="white" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <Text>Profile</Text>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator /> */}
               <DropdownMenuItem onPress={async () => {
                   await AsyncStorage.removeItem('uid');
                   await AsyncStorage.removeItem('id_token');
                   await AsyncStorage.removeItem('refresh_token');
+                  await AsyncStorage.removeItem('enable_notifications');
                   
                   router.replace("/sign-in")
                 }}>

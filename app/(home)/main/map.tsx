@@ -15,6 +15,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import useUserData from '@/hooks/useUserData';
 import { useFocusEffect } from 'expo-router';
 import { useRouter } from "expo-router";
+import * as Notifications from 'expo-notifications';
 
 const styles = StyleSheet.create({
   container: {
@@ -91,7 +92,23 @@ const MapScreen = () => {
 
     const [interactables, setInteractables] = useState([])
     
-    const { getInteractionRange, fetchUserData } = useUserData()
+    const { getInteractionRange, fetchUserData } = useUserData()               
+    
+    useEffect(() => {
+        const checkNotificationPermissions = async () => {
+            const permission = await Notifications.getPermissionsAsync();
+            if (!permission.granted) {
+                    await Notifications.requestPermissionsAsync({
+                    ios: {
+                    allowAlert: true,
+                    allowBadge: true,
+                    allowSound: true,
+                    },
+                })
+            }
+        };
+        checkNotificationPermissions();
+    }, []);
 
     useEffect(() => {
         const getCurrentLocation = async () => {

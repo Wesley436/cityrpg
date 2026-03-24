@@ -3,7 +3,7 @@ import api from '@/config/api';
 import Alert from '@blazejkustra/react-native-alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity, Image } from 'react-native';
 

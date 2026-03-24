@@ -3,12 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '@/config/api';
 import Alert from '@blazejkustra/react-native-alert';
 import axios from "axios";
+import * as Notifications from 'expo-notifications';
 
 const INTERACTION_RANGE = 400
 const BASE_HP = 100
 const BASE_STRENGTH = 100
 const BASE_DEFENSE = 100
 const BASE_SPEED = 100
+const SECONDS_PER_HEALTH_REGNERATION = 1
 
 const calculateEquipmentStrength = (user: { weapon: { strength: any; }; }) => {
     var strengthEquipment = 0
@@ -70,13 +72,40 @@ const calculateStats = async (user: any) => {
 
     if (lastRegeneratedAt) {
         var secondsSinceLastRegeneration = (Date.now() - lastRegeneratedAt) / 1000
-        if (secondsSinceLastRegeneration >= 10) {
-            var healthRegenerated = parseFloat((secondsSinceLastRegeneration / 10).toFixed(2))
+        if (secondsSinceLastRegeneration >= SECONDS_PER_HEALTH_REGNERATION) {
+            var healthRegenerated = parseFloat((secondsSinceLastRegeneration / SECONDS_PER_HEALTH_REGNERATION).toFixed(2))
             user.health.current = Math.min(user.health.currentMax, user.health.current + healthRegenerated)
             user.health.lastRegeneratedAt = Date.now()
         }
     }
-    console.log(user.health)
+
+    if (user.health.current < user.health.currentMax && user.enable_notifications) {
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldPlaySound: false,
+                shouldSetBadge: false,
+                shouldShowBanner: true,
+                shouldShowList: true,
+            }),
+        });
+
+        const timeUntilFullHealth =
+            SECONDS_PER_HEALTH_REGNERATION
+            * parseInt(
+                (user.health.currentMax - user.health.current).toFixed(0)
+            )
+
+        await Notifications.cancelAllScheduledNotificationsAsync()
+        Notifications.scheduleNotificationAsync({
+            content: {
+                title: 'Your health has regenerated to full.'
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: timeUntilFullHealth + SECONDS_PER_HEALTH_REGNERATION,
+            },
+        });
+    }
 
     var strengthEquipment = calculateEquipmentStrength(user)
     const strengthEffects = statusEffects.filter((e: { type: string }) => e.type == "strength")
@@ -185,6 +214,10 @@ const useUserData = () => {
         }
 
         setUserData(user || {})
+        
+        if (user.enable_notifications) {
+            AsyncStorage.setItem('enable_notifications', JSON.stringify(user.enable_notifications))
+        }
     }
 
     const fetchUserData = async () => {
