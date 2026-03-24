@@ -57,6 +57,7 @@ const calculateStats = async (user: any) => {
     var maxHealth = BASE_HP + maxHealthEquipment + maxHealthAdditional
 
     var currentHealth = healthBefore?.current === null ? maxHealth : healthBefore?.current
+    var lastRegeneratedAt = healthBefore?.lastRegeneratedAt === null ? Date.now() : healthBefore?.lastRegeneratedAt
     user.health = {
         current: currentHealth,
         maxBase: BASE_HP,
@@ -64,7 +65,18 @@ const calculateStats = async (user: any) => {
         maxAdditional: maxHealthAdditional,
         maxBeforeAdditional: BASE_HP + maxHealthEquipment,
         currentMax: maxHealth,
+        lastRegeneratedAt: lastRegeneratedAt
     }
+
+    if (lastRegeneratedAt) {
+        var secondsSinceLastRegeneration = (Date.now() - lastRegeneratedAt) / 1000
+        if (secondsSinceLastRegeneration >= 10) {
+            var healthRegenerated = parseFloat((secondsSinceLastRegeneration / 10).toFixed(2))
+            user.health.current = Math.min(user.health.currentMax, user.health.current + healthRegenerated)
+            user.health.lastRegeneratedAt = Date.now()
+        }
+    }
+    console.log(user.health)
 
     var strengthEquipment = calculateEquipmentStrength(user)
     const strengthEffects = statusEffects.filter((e: { type: string }) => e.type == "strength")
