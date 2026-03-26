@@ -1,6 +1,6 @@
-import { useState, useEffect, JSX } from 'react';
+import { useState, useEffect, JSX, useCallback } from 'react';
 import api from '../../../config/api';
-import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { FlatList, Modal, RefreshControl, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import Alert from '@blazejkustra/react-native-alert';
 import axios from "axios";
@@ -120,6 +120,7 @@ const InventoryScreen = () => {
     const [onModalAccept, setOnModalAccept] = useState(() => () => {})
     const [onModalDiscard, setOnModalDiscard] = useState(() => () => {})
     const [processingItem, setProcessingItem] = useState(false)
+    const [isRefreshing, setIsRefreshing] = useState(false);
  
     const { userData, updateUserData, inventory, fetchUserData } = useUserData()
 
@@ -296,6 +297,13 @@ const InventoryScreen = () => {
         )
     }
 
+    const handleRefresh = useCallback(async () => {
+        console.log("refreshing")
+        setIsRefreshing(true)
+        await fetchUserData()
+        setIsRefreshing(false)
+    }, []);
+
     return (
         <>
             <View style={styles.container}>
@@ -345,19 +353,47 @@ const InventoryScreen = () => {
                         </TabsList>
                 
                         <TabsContent value="all" style={styles.item_grid}>
-                            <FlatList data={getInventoryList()} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                            <FlatList data={getInventoryList()} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={isRefreshing}
+                                        onRefresh={handleRefresh}
+                                    />
+                                }
+                            />
                         </TabsContent>
                 
                         <TabsContent value="equipment" style={styles.item_grid}>
-                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={isRefreshing}
+                                        onRefresh={handleRefresh}
+                                    />
+                                }
+                            />
                         </TabsContent>
 
                         <TabsContent value="items" style={styles.item_grid}>
-                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "item")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type == "item")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={isRefreshing}
+                                        onRefresh={handleRefresh}
+                                    />
+                                }
+                            />
                         </TabsContent>
 
                         <TabsContent value="other" style={styles.item_grid}>
-                            <FlatList data={inventory.filter((item: { type: string }) => item.type != "item" && item.type != "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id} />
+                            <FlatList data={inventory.filter((item: { type: string }) => item.type != "item" && item.type != "equipment")} numColumns={4} renderItem={ItemBox} keyExtractor={item => item.id}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={isRefreshing}
+                                        onRefresh={handleRefresh}
+                                    />
+                                }
+                            />
                         </TabsContent>
                     </Tabs>
                 </View>
