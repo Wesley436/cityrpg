@@ -92,7 +92,7 @@ const MapScreen = () => {
 
     const [interactables, setInteractables] = useState([])
     
-    const { getInteractionRange, fetchUserData } = useUserData()               
+    const { updateUserData, getInteractionRange, fetchUserData } = useUserData()               
     
     useEffect(() => {
         const checkNotificationPermissions = async () => {
@@ -272,8 +272,13 @@ const MapScreen = () => {
     async function startBattle(interactable: { id: any; }) {
         const uidValue = await AsyncStorage.getItem('uid')
         if (uidValue) {
+            await Notifications.cancelAllScheduledNotificationsAsync()
             await api.post("/map/start-battle", {"interactable_id": interactable.id})
-            .then(function () {
+            .then(async function (response) {
+                const user = response?.data.user
+                if (user) {
+                    await updateUserData(user)
+                }
                 router.replace("/main/battle")
             })
             .catch(function (error) {

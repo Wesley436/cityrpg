@@ -70,41 +70,43 @@ const calculateStats = async (user: any) => {
         lastRegeneratedAt: lastRegeneratedAt
     }
 
-    if (lastRegeneratedAt) {
-        var secondsSinceLastRegeneration = (Date.now() - lastRegeneratedAt) / 1000
-        if (secondsSinceLastRegeneration >= SECONDS_PER_HEALTH_REGNERATION) {
-            var healthRegenerated = parseFloat((secondsSinceLastRegeneration / SECONDS_PER_HEALTH_REGNERATION).toFixed(2))
-            user.health.current = Math.min(user.health.currentMax, user.health.current + healthRegenerated)
-            user.health.lastRegeneratedAt = Date.now()
+    if (!user.in_battle) {
+        if (lastRegeneratedAt) {
+            var secondsSinceLastRegeneration = (Date.now() - lastRegeneratedAt) / 1000
+            if (secondsSinceLastRegeneration >= SECONDS_PER_HEALTH_REGNERATION) {
+                var healthRegenerated = parseFloat((secondsSinceLastRegeneration / SECONDS_PER_HEALTH_REGNERATION).toFixed(2))
+                user.health.current = Math.min(user.health.currentMax, user.health.current + healthRegenerated)
+                user.health.lastRegeneratedAt = Date.now()
+            }
         }
-    }
 
-    if (user.health.current < user.health.currentMax && user.enable_notifications) {
-        Notifications.setNotificationHandler({
-            handleNotification: async () => ({
-                shouldPlaySound: false,
-                shouldSetBadge: false,
-                shouldShowBanner: true,
-                shouldShowList: true,
-            }),
-        });
+        if (user.health.current < user.health.currentMax && user.enable_notifications) {
+            Notifications.setNotificationHandler({
+                handleNotification: async () => ({
+                    shouldPlaySound: false,
+                    shouldSetBadge: false,
+                    shouldShowBanner: true,
+                    shouldShowList: true,
+                }),
+            });
 
-        const timeUntilFullHealth =
-            SECONDS_PER_HEALTH_REGNERATION
-            * parseInt(
-                (user.health.currentMax - user.health.current).toFixed(0)
-            )
+            const timeUntilFullHealth =
+                SECONDS_PER_HEALTH_REGNERATION
+                * parseInt(
+                    (user.health.currentMax - user.health.current).toFixed(0)
+                )
 
-        await Notifications.cancelAllScheduledNotificationsAsync()
-        Notifications.scheduleNotificationAsync({
-            content: {
-                title: 'Your health has regenerated to full.'
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds: timeUntilFullHealth + SECONDS_PER_HEALTH_REGNERATION,
-            },
-        });
+            await Notifications.cancelAllScheduledNotificationsAsync()
+            Notifications.scheduleNotificationAsync({
+                content: {
+                    title: 'Your health has regenerated to full.'
+                },
+                trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                    seconds: timeUntilFullHealth + SECONDS_PER_HEALTH_REGNERATION,
+                },
+            });
+        }
     }
 
     var strengthEquipment = calculateEquipmentStrength(user)
