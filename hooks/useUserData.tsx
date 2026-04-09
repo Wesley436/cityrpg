@@ -58,7 +58,7 @@ const calculateStats = async (user: any) => {
     var maxHealthAdditional = 0
     var maxHealth = BASE_HP + maxHealthEquipment + maxHealthAdditional
 
-    var currentHealth = healthBefore?.current === null ? maxHealth : healthBefore?.current
+    var currentHealth = healthBefore?.current === null || healthBefore?.current === undefined ? maxHealth : healthBefore?.current
     var lastRegeneratedAt = healthBefore?.lastRegeneratedAt === null ? Date.now() : healthBefore?.lastRegeneratedAt
     user.health = {
         current: currentHealth,
